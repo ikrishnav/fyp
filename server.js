@@ -9,19 +9,16 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Serve index.html
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Serve static files (if any CSS/JS in /public)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// MySQL Connection
 const db = mysql.createConnection({
   host: 'localhost',
   user: 'root',
-  password: '', // Default XAMPP MySQL password
+  password: '', 
   database: 'sigfox_data'
 });
 
@@ -33,7 +30,6 @@ db.connect((err) => {
   console.log("Connected to MySQL!");
 });
 
-// Route to receive Sigfox data (simulate POST)
 app.post('/api/sigfox', (req, res) => {
   const { device, data, time } = req.body;
 
@@ -58,7 +54,6 @@ app.post('/api/sigfox', (req, res) => {
   });
 });
 
-// Route to get all data for dashboard
 app.get('/api/data', (req, res) => {
   db.query('SELECT * FROM sensor_data ORDER BY timestamp DESC', (err, results) => {
     if (err) {
@@ -69,7 +64,6 @@ app.get('/api/data', (req, res) => {
   });
 });
 
-// Start the server
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
