@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Reset Password</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/style.css" rel="stylesheet">
+</head>
+<body class="login-body">
+  <div class="auth-container">
+    <div class="auth-card">
+      <h2 class="auth-title">🔒 Reset Password</h2>
+      <form id="reset-form">
+        <input type="hidden" name="email" id="email-field">
+        <div class="mb-3">
+          <label for="otp" class="form-label">OTP</label>
+          <input type="text" class="form-control" name="otp" required>
+        </div>
+        <div class="mb-3">
+          <label for="new_password" class="form-label">New Password</label>
+          <input type="password" class="form-control" name="new_password" required>
+        </div>
+        <div id="otp-error" class="text-danger mb-2"></div>
+        <div class="d-grid">
+          <button type="submit" class="btn btn-primary">Reset Password</button>
+        </div>
+      </form>
+      <div class="text-center mt-3">
+        <a href="/auth/login" class="link-light">Back to Login</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const email = urlParams.get('email');
+    document.getElementById('email-field').value = email;
+
+    document.getElementById('reset-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const form = e.target;
+      const otp = form.otp.value.trim();
+      const new_password = form.new_password.value;
+      const email = form.email.value;
+
+      const response = await fetch('/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp, new_password })
+      });
+
+      const result = await response.text();
+      if (result === 'Invalid OTP') {
+        document.getElementById('otp-error').textContent = '❌ Invalid OTP. Please try again.';
+      } else {
+        window.location.href = '/views/reset-success.html';
+      }
+    });
+  </script>
+</body>
+</html>

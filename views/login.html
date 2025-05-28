@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login - IoT Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/style.css" rel="stylesheet">
+</head>
+<body class="login-body">
+  <div class="auth-container">
+    <div class="auth-card">
+      <h2 class="auth-title">🔐 IoT Dashboard Login</h2>
+      <form id="login-form">
+        <div class="mb-3">
+          <label for="email" class="form-label">Email</label>
+          <input type="email" class="form-control" name="email" required>
+        </div>
+        <div class="mb-3">
+          <label for="password" class="form-label">Password</label>
+          <input type="password" class="form-control" name="password" required>
+        </div>
+        <div id="error-message" class="text-danger mb-2"></div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <a href="/auth/forgot" class="text-decoration-none">Forgot Password?</a>
+        </div>
+        <div class="d-grid">
+          <button type="submit" class="btn btn-primary">Login</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ✅ Wrap in DOMContentLoaded -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const loginForm = document.getElementById('login-form');
+
+      loginForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const email = e.target.email.value.trim();
+        const password = e.target.password.value;
+
+        if (!email || !password) {
+          document.getElementById('error-message').textContent = "Please fill in all fields.";
+          return;
+        }
+
+        const response = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          const dashboards = {
+            wifi: '/views/dashboard-wifi.html',
+            bluetooth: '/views/dashboard-bluetooth.html',
+            sigfox1: '/views/dashboard-sigfox1.html',
+            sigfox2: '/views/dashboard-sigfox2.html',
+            admin: '/views/dashboard-admin.html'
+          };
+          window.location.href = dashboards[result.role] || '/index.html';
+        } else {
+          document.getElementById('error-message').textContent = result.message;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
