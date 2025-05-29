@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const db = require('../mqtt/db');
 
-// POST: Receive data from Sigfox backend callback
+// POST: Receive data from Sigfox 2 callback
 router.post('/api/data/sigfox2', (req, res) => {
   const { device, time, data } = req.body;
 
@@ -10,7 +10,6 @@ router.post('/api/data/sigfox2', (req, res) => {
     return res.status(400).json({ error: 'Invalid Sigfox payload' });
   }
 
-  // Decode payload: 2 bytes = 1 byte temp (x2) + 1 byte humidity
   const tempHex = data.substring(0, 2);
   const humHex = data.substring(2, 4);
 
@@ -18,7 +17,6 @@ router.post('/api/data/sigfox2', (req, res) => {
   const humidity = parseInt(humHex, 16);
   const timestamp = new Date(time * 1000);
 
-  // Insert into sigfox1_data
   const insertDataSql = `
     INSERT INTO sigfox2_data (device_id, temperature, humidity, timestamp)
     VALUES (?, ?, ?, ?)
@@ -29,7 +27,7 @@ router.post('/api/data/sigfox2', (req, res) => {
       return res.status(500).json({ error: 'Insert failed' });
     }
 
-    // Check for SLA breach
+    // ✅ Correct SLA breach table for Sigfox 2
     let breached = false;
     let statusText = [];
 
@@ -44,11 +42,11 @@ router.post('/api/data/sigfox2', (req, res) => {
 
     if (breached) {
       const insertBreachSql = `
-        INSERT INTO sla_breaches_sigfox1 (device_id, timestamp, temperature, humidity, status)
+        INSERT INTO sla_breaches_sigfox2 (device_id, timestamp, temperature, humidity, status)
         VALUES (?, ?, ?, ?, ?)
       `;
       db.query(insertBreachSql, [device, timestamp, temperature, humidity, statusText.join(', ')], (err) => {
-        if (err) console.error('Error inserting breach for sigfox1:', err);
+        if (err) console.error('Error inserting breach for sigfox2:', err);
       });
     }
 
@@ -57,14 +55,22 @@ router.post('/api/data/sigfox2', (req, res) => {
   });
 });
 
-// GET: Breaches for dashboard
+// ✅ GET route for Sigfox 2 breaches
 router.get('/api/breaches/sigfox2', (req, res) => {
-  const sql = 'SELECT * FROM sla_breaches_sigfox1 ORDER BY timestamp DESC';
+  const sql = 'SELECT * FROM sla_breaches_sigfox2 ORDER BY timestamp DESC';
+  db.query(sql, (err, results) => {
+    if (err) return res.status(500).json({ error: 'Database error.' });
+    res.json(results);
+  });
+});
+// GET: Fetch all sensor data for Sigfox 2
+router.get('/api/data/sigfox2', (req, res) => {
+  const sql = 'SELECT * FROM sigfox2_data ORDER BY timestamp ASC';
   db.query(sql, (err, results) => {
     if (err) return res.status(500).json({ error: 'Database error.' });
     res.json(results);
   });
 });
 
+
 module.exports = router;
-// 

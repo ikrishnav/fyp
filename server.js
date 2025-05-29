@@ -7,18 +7,15 @@ const bcrypt = require('bcrypt');
 
 const app = express();
 
-// ✅ Session setup MUST come before routes
 app.use(session({
   secret: 'iot_project_secret',
   resave: false,
   saveUninitialized: false
 }));
 
-// ✅ Middleware
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-// ✅ Routes
 const authRoutes = require('./routes/auth');
 const sigfox1Routes = require('./routes/sigfox1');
 const sigfox2Routes = require('./routes/sigfox2');
@@ -33,16 +30,18 @@ app.use(bluetoothRoutes);
 app.use(adminRoutes);
 app.use(wifiRoutes);
 
-// ✅ Static files
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/views', express.static(path.join(__dirname, 'views')));
 
-// ✅ Default route
 app.get('/', (req, res) => {
   res.redirect('/views/login.html');
 });
 
-// ✅ Start server
-app.listen(3000, () => {
-  console.log('Server running on http://localhost:3000');
-});
+setTimeout(() => {
+  app.listen(3000, () => {
+    console.log('Server running on http://localhost:3000');
+  });
+}, 5000); 
+
+require('./mqtt-handler');
+

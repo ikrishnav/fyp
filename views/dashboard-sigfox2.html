@@ -9,7 +9,6 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 </head>
-<!--krishna : main heading and cards-->
 <body>
   <div class="container py-4">
     <h2 class="text-center mb-5">📡 Sigfox 2 Dashboard - Environmental Monitoring</h2>
@@ -49,7 +48,6 @@
       <button class="btn btn-export" onclick="exportTrend('temp')">Export Temperature Data</button>
     </div>
 
-    <!--Hazima humidity trend chart+export-->
     <div class="card">
       <h5 class="card-title">📉 Humidity Trend</h5>
       <canvas id="humChart" height="110"></canvas>
@@ -57,13 +55,12 @@
     </div>
 
     <div class="card text-center">
-      <h5 class="card-title">🧮 SLA Compliance Overview</h5>
+      <h5 class="card-title">🧶 SLA Compliance Overview</h5>
       <div style="max-width: 480px; margin: auto;">
         <canvas id="slaPieChart"></canvas>
       </div>
     </div>
 
-    <!--Naima : SLA breach table and export-->
     <div class="card">
       <h5 class="card-title">📋 SLA Breach Details</h5>
       <div class="table-responsive">
@@ -84,71 +81,66 @@
     </div>
   </div>
 
-  <!--naima: export button for sla breach-->
   <script>
-    let tempCSV = [['Device ID', 'Timestamp', 'Temperature']];
-    let humCSV = [['Device ID', 'Timestamp', 'Humidity']];
-    let breachCSV = [['Device ID', 'Timestamp', 'Temperature', 'Humidity', 'Status']];
+    const tempCSV = [['Device ID', 'Timestamp', 'Temperature']];
+    const humCSV = [['Device ID', 'Timestamp', 'Humidity']];
+    const breachCSV = [['Device ID', 'Timestamp', 'Temperature', 'Humidity', 'Status']];
 
     function downloadCSV(data, filename) {
-      const csvContent = data.map(row => row.join(",")).join("\n");
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const csv = data.map(row => row.join(",")).join("\n");
+      const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", filename);
+      link.href = url;
+      link.download = filename;
       link.click();
     }
 
     function exportTrend(type) {
-      if (type === 'temp') {
-        downloadCSV(tempCSV, 'temperature_data.csv');
-      } else if (type === 'hum') {
-        downloadCSV(humCSV, 'humidity_data.csv');
-      }
+      if (type === 'temp') downloadCSV(tempCSV, 'temperature_data.csv');
+      else if (type === 'hum') downloadCSV(humCSV, 'humidity_data.csv');
     }
 
     function exportBreaches() {
       downloadCSV(breachCSV, 'sla_breach_data.csv');
     }
 
-    //Jovan: Fetch data from the API and populate the dashboard
-
     async function fetchData() {
-      const res = await fetch('/api/breaches/sigfox2');
-      const data = await res.json();
-      data.forEach(entry => {
+      const [sensorRes, breachRes] = await Promise.all([
+        fetch('/api/data/sigfox2'),
+        fetch('/api/breaches/sigfox2')
+      ]);
+
+      const sensorData = await sensorRes.json();
+      const breaches = await breachRes.json();
+      let breachRows = '';
+
+      breaches.forEach(entry => {
         breachCSV.push([entry.device_id, entry.timestamp, entry.temperature, entry.humidity, entry.status]);
-        breachRows += `
-          <tr>
-            <td>${entry.device_id}</td>
-            <td>${new Date(entry.timestamp).toLocaleTimeString()}</td>
-            <td>${entry.temperature}</td>
-            <td>${entry.humidity}</td>
-            <td>${entry.status}</td>
-          </tr>
-        `;
+        breachRows += `<tr><td>${entry.device_id}</td><td>${new Date(entry.timestamp).toLocaleTimeString()}</td><td>${entry.temperature}</td><td>${entry.humidity}</td><td>${entry.status}</td></tr>`;
       });
       document.getElementById('sla-breach-table').innerHTML = breachRows;
 
       const grouped = {};
       const allTimestampsSet = new Set();
-      data.forEach(entry => {
+
+      sensorData.forEach(entry => {
         const ts = new Date(entry.timestamp).toLocaleTimeString();
         allTimestampsSet.add(ts);
         if (!grouped[entry.device_id]) grouped[entry.device_id] = [];
         grouped[entry.device_id].push(entry);
       });
+
       const allTimestamps = Array.from(allTimestampsSet).sort();
 
       let latestTemp = '--', latestHum = '--';
       let totalDevices = Object.keys(grouped).length;
-      let slaBreached = 0, totalReadings = 0;
+      let slaBreached = breaches.length;
+      let totalReadings = sensorData.length;
 
       const tempDatasets = [], humDatasets = [];
       const pieLabels = ['Compliant', 'Breached'];
-      let pieData = [0, 0];
-      let breachRows = '';
+      let pieData = [totalReadings - slaBreached, slaBreached];
 
       const colors = ['#3b82f6', '#f43f5e', '#22c55e', '#f97316'];
       let colorIndex = 0;
@@ -161,47 +153,15 @@
           deviceTimeMap[ts] = d;
         });
 
-        const alignedTemps = allTimestamps.map(ts => deviceTimeMap[ts] ? deviceTimeMap[ts].temperature : null);
-        const alignedHums = allTimestamps.map(ts => deviceTimeMap[ts] ? deviceTimeMap[ts].humidity : null);
+        const alignedTemps = allTimestamps.map(ts => deviceTimeMap[ts]?.temperature ?? null);
+        const alignedHums = allTimestamps.map(ts => deviceTimeMap[ts]?.humidity ?? null);
 
         deviceData.forEach(entry => {
           const ts = new Date(entry.timestamp).toLocaleTimeString();
-          const temp = entry.temperature;
-          const hum = entry.humidity;
-          let breached = false;
-          let status = '';
-
-          //krishna: temp csv export
-          tempCSV.push([entry.device_id, ts, temp]);
-          //Hazima: humidity csv export
-          humCSV.push([entry.device_id, ts, hum]);
-//Naima: check for SLA breach
-          if (temp > 40) {
-            breached = true;
-            status += '<div><span class="emoji">🔥</span> High Temp</div>';
-          }
-          if (hum > 90) {
-            breached = true;
-            status += '<div><span class="emoji">💦</span> High Humidity</div>';
-          }
-
-          if (breached) {
-            slaBreached++;
-            breachCSV.push([entry.device_id, ts, temp, hum, status.replace(/<[^>]*>/g, '').trim()]);
-            breachRows += `
-              <tr>
-                <td>${entry.device_id}</td>
-                <td>${ts}</td>
-                <td>${temp}</td>
-                <td>${hum}</td>
-                <td>${status}</td>
-              </tr>
-            `;
-          }
-          totalReadings++;
-
+          tempCSV.push([entry.device_id, ts, entry.temperature]);
+          humCSV.push([entry.device_id, ts, entry.humidity]);
         });
-        //krishna: temperature datasets
+
         tempDatasets.push({
           label: `Device ${device}`,
           data: alignedTemps,
@@ -212,7 +172,6 @@
           pointRadius: 3
         });
 
-        //Hazima: humidity datasets
         humDatasets.push({
           label: `Device ${device}`,
           data: alignedHums,
@@ -224,16 +183,13 @@
         });
 
         if (colorIndex === 0) {
-            latestTemp = alignedTemps.slice().reverse().find(v => v !== null);
-            latestHum = alignedHums.slice().reverse().find(v => v !== null);
-
+          latestTemp = alignedTemps.slice().reverse().find(v => v !== null);
+          latestHum = alignedHums.slice().reverse().find(v => v !== null);
         }
 
         colorIndex++;
       }
 
-      pieData = [totalReadings - slaBreached, slaBreached];
-      //krishna: update the latest temperature and humidity values
       document.getElementById("latest-temp").innerText = `${latestTemp} °C`;
       document.getElementById("latest-hum").innerText = `${latestHum} %`;
       document.getElementById("device-count").innerText = totalDevices;
@@ -243,9 +199,7 @@
         document.getElementById("sla-alert").innerText = `⚠ SLA BREACH: ${slaBreached} anomalies detected.`;
       }
 
-      document.getElementById('sla-breach-table').innerHTML = breachRows;
-
-      new Chart(document.getElementById('tempChart').getContext('2d'), {
+      new Chart(document.getElementById('tempChart'), {
         type: 'line',
         data: { labels: allTimestamps, datasets: tempDatasets },
         options: {
@@ -264,8 +218,7 @@
         plugins: [ChartDataLabels]
       });
 
-      //Hazima: humidity chart
-      new Chart(document.getElementById('humChart').getContext('2d'), {
+      new Chart(document.getElementById('humChart'), {
         type: 'line',
         data: { labels: allTimestamps, datasets: humDatasets },
         options: {
@@ -284,8 +237,7 @@
         plugins: [ChartDataLabels]
       });
 
-      //Naima: SLA pie chart
-      new Chart(document.getElementById('slaPieChart').getContext('2d'), {
+      new Chart(document.getElementById('slaPieChart'), {
         type: 'doughnut',
         data: {
           labels: pieLabels,
@@ -305,7 +257,7 @@
             },
             datalabels: {
               color: '#fff',
-              formatter: (value, ctx) => value + ' readings'
+              formatter: (value) => `${value} readings`
             }
           }
         },

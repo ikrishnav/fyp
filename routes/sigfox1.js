@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const db = require('../mqtt/db');
 
 // POST: Handle Sigfox callback (URL-encoded)
 // GET: Return all Sigfox1 sensor data (not just breaches)
@@ -12,7 +12,6 @@ router.get('/api/data/sigfox1', (req, res) => {
   });
 });
 
-module.exports = router;
 // GET: Return SLA breach data
 router.get('/api/breaches/sigfox1', (req, res) => {
   const sql = 'SELECT * FROM sla_breaches_sigfox1 ORDER BY timestamp ASC';

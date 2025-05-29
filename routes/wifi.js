@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const db = require('../mqtt/db');
 
 // ✅ POST endpoint (already exists) - logs data and breaches
 router.post('/api/data/wifi', (req, res) => {

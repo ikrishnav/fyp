@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const db = require('../mqtt/db');
 
 // ✅ POST: Receive Bluetooth sensor data
 router.post('/api/data/bluetooth', (req, res) => {

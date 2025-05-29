@@ -6,11 +6,12 @@ const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
 
 const db = mysql.createConnection({
-  host: 'localhost',
+  host: 'mysql', // 🚨 This must match the service name in docker-compose.yml
   user: 'root',
-  password: '',
+  password: '', // Ensure this matches MYSQL_ROOT_PASSWORD
   database: 'iot_dashboard'
 });
+
 
 // Serve login page
 router.get('/login', (req, res) => {
