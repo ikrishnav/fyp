@@ -40,8 +40,11 @@ router.post('/api/data/sigfox2', (req, res) => {
       statusText.push('High Humidity');
     }
 
-    if (breached) {
+    // breach values not displaying fixed
+        if (breached) {
+
       const insertBreachSql = `
+      
         INSERT INTO sla_breaches_sigfox2 (device_id, timestamp, temperature, humidity, status)
         VALUES (?, ?, ?, ?, ?)
       `;
