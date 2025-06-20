@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const db = require('../mqtt/db');
 
-// ✅ POST endpoint (already exists) - logs data and breaches
 router.post('/api/data/wifi', (req, res) => {
   const { device_id, timestamp, temperature, humidity } = req.body;
 
@@ -10,7 +9,6 @@ router.post('/api/data/wifi', (req, res) => {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  // Insert into wifi_data
   const insertData = `
     INSERT INTO wifi_data (device_id, temperature, humidity, timestamp)
     VALUES (?, ?, ?, FROM_UNIXTIME(?))
@@ -23,7 +21,6 @@ router.post('/api/data/wifi', (req, res) => {
     console.log(`✅ Inserted into wifi_data for ${device_id}`);
   });
 
-  // Check for SLA breach
   let breached = false;
   let statusText = [];
 
@@ -53,7 +50,6 @@ router.post('/api/data/wifi', (req, res) => {
   res.json({ message: 'Wi-Fi data logged and SLA checked.' });
 });
 
-// ✅ NEW: Get all Wi-Fi readings
 router.get('/api/data/wifi', (req, res) => {
   const sql = 'SELECT * FROM wifi_data ORDER BY timestamp ASC';
   db.query(sql, (err, results) => {
@@ -62,7 +58,6 @@ router.get('/api/data/wifi', (req, res) => {
   });
 });
 
-// ✅ Already exists: Get SLA breaches
 router.get('/api/breaches/wifi', (req, res) => {
   const sql = 'SELECT * FROM sla_breaches_wifi ORDER BY timestamp DESC';
   db.query(sql, (err, results) => {
@@ -72,3 +67,4 @@ router.get('/api/breaches/wifi', (req, res) => {
 });
 
 module.exports = router;
+//

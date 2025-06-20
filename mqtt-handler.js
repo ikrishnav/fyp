@@ -1,29 +1,33 @@
 const mqtt = require('mqtt');
-const db = require('./mqtt/db');
-
-const client = mqtt.connect('mqtt://localhost:1883');
+const db = require('./db');
+const client = mqtt.connect('mqtt://192.168.129.73:1883');
 
 client.on('connect', () => {
-  console.log('✅ MQTT connected');
+  console.log('MQTT connected');
   client.subscribe('iot/wifi');
-  client.subscribe('iot/sigfox1');
 });
 
 client.on('message', (topic, message) => {
-  const payload = JSON.parse(message.toString());
-  const { device_id, timestamp, temperature, humidity } = payload;
+  try {
+    const payload = JSON.parse(message.toString());
+    const { device_id, timestamp, temperature, humidity } = payload;
 
-  if (topic === 'iot/wifi') {
-    // Insert into wifi_data
-    db.query(`INSERT INTO wifi_data (device_id, temperature, humidity, timestamp) VALUES (?, ?, ?, FROM_UNIXTIME(?))`,
-      [device_id, temperature, humidity, timestamp]);
+    if (topic === 'iot/wifi') {
+      db.query(`INSERT INTO wifi_data (device_id, temperature, humidity, timestamp)
+        VALUES (?, ?, ?, FROM_UNIXTIME(?))`,
+        [device_id, temperature, humidity, timestamp]);
+
+      const breaches = [];
+      if (temperature > 40) breaches.push('High Temp');
+      if (humidity > 90) breaches.push('High Humidity');
+
+      if (breaches.length) {
+        db.query(`INSERT INTO sla_breaches_wifi (device_id, timestamp, temperature, humidity, status)
+          VALUES (?, FROM_UNIXTIME(?), ?, ?, ?)`,
+          [device_id, timestamp, temperature, humidity, breaches.join(', ')]);
+      }
+    }
+  } catch (err) {
+    console.error('Parsing MQTT failed:', err);
   }
-
-  if (topic === 'iot/sigfox1') {
-    // Insert into sigfox1_data
-    db.query(`INSERT INTO sigfox1_data (device_id, temperature, humidity, timestamp) VALUES (?, ?, ?, FROM_UNIXTIME(?))`,
-      [device_id, temperature, humidity, timestamp]);
-  }
-
-  // Add SLA breach logic if needed
 });

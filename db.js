@@ -1,10 +1,10 @@
 const mysql = require('mysql2');
 
 const db = mysql.createConnection({
-  host: 'mysql',    
-  user: 'root',         
+  host: 'mysql',  
+  user: 'root',          
   password: '', 
-  database: 'iot_dashboard' 
+  database: 'iot_dashboard'  //dddsdsdsd
 });
 
 db.connect((err) => {

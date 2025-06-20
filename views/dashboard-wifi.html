@@ -37,9 +37,21 @@
         </table>
       </div>
     </div>
+
+    <!-- ✅ Export Buttons -->
+    <div class="text-center my-3">
+      <button class="btn btn-export" onclick="exportTrend('temp')">Export Temperature CSV</button>
+      <button class="btn btn-export" onclick="exportTrend('hum')">Export Humidity CSV</button>
+      <button class="btn btn-export" onclick="exportBreaches()">Export SLA Breach CSV</button>
+    </div>
   </div>
 
   <script>
+    // ✅ CSV storage arrays
+    let tempCSV = [['Device ID', 'Timestamp', 'Temperature']];
+    let humCSV = [['Device ID', 'Timestamp', 'Humidity']];
+    let breachCSV = [['Device ID', 'Timestamp', 'Temperature', 'Humidity', 'Status']];
+
     async function fetchData() {
       const res = await fetch('/api/data/wifi');
       const breachRes = await fetch('/api/breaches/wifi');
@@ -49,9 +61,6 @@
 
       const grouped = {};
       const allTimestampsSet = new Set();
-      let tempCSV = [['Device ID', 'Timestamp', 'Temperature']];
-      let humCSV = [['Device ID', 'Timestamp', 'Humidity']];
-      let breachCSV = [['Device ID', 'Timestamp', 'Temp', 'Humidity', 'Status']];
       let breachRows = '';
 
       breaches.forEach(entry => {
@@ -72,6 +81,10 @@
         allTimestampsSet.add(ts);
         if (!grouped[entry.device_id]) grouped[entry.device_id] = [];
         grouped[entry.device_id].push({ ...entry, ts });
+
+        // ✅ Fill CSV data
+        tempCSV.push([entry.device_id, ts, entry.temperature]);
+        humCSV.push([entry.device_id, ts, entry.humidity]);
       });
 
       const allTimestamps = Array.from(allTimestampsSet).sort();
@@ -88,12 +101,11 @@
         const alignedTemps = allTimestamps.map(ts => timeMap[ts]?.temperature ?? null);
         const alignedHums = allTimestamps.map(ts => timeMap[ts]?.humidity ?? null);
 
-       if (colorIndex === 0) {
+        if (colorIndex === 0) {
           const latestEntry = entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
           latestTemp = latestEntry.temperature;
           latestHum = latestEntry.humidity;
         }
-
 
         tempDatasets.push({
           label: device,
@@ -116,7 +128,6 @@
 
       const totalReadings = data.length;
       const compliant = Math.max(0, totalReadings - slaBreached);
-
 
       document.getElementById("latest-temp").innerText = `${latestTemp} °C`;
       document.getElementById("latest-hum").innerText = `${latestHum} %`;
@@ -184,6 +195,29 @@
         },
         plugins: [ChartDataLabels]
       });
+    }
+
+    // ✅ CSV Export Functions
+    function downloadCSV(data, filename) {
+      const csvContent = data.map(row => row.join(",")).join("\n");
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", filename);
+      link.click();
+    }
+
+    function exportTrend(type) {
+      if (type === 'temp') {
+        downloadCSV(tempCSV, 'temperature_wifi.csv');
+      } else if (type === 'hum') {
+        downloadCSV(humCSV, 'humidity_wifi.csv');
+      }
+    }
+
+    function exportBreaches() {
+      downloadCSV(breachCSV, 'sla_breaches_wifi.csv');
     }
 
     fetchData();
