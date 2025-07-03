@@ -1,80 +1,45 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
 const db = require('../mqtt/db');
 
-// ✅ POST: Receive Bluetooth sensor data
-router.post('/api/data/bluetooth', (req, res) => {
-  const { device_id, timestamp, temperature, humidity } = req.body;
-
-  if (!device_id || !timestamp || temperature == null || humidity == null) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
-
-  // ✅ Insert into bluetooth_data
-  const insertAllSql = `
-    INSERT INTO bluetooth_data (device_id, temperature, humidity, timestamp)
-    VALUES (?, ?, ?, FROM_UNIXTIME(?))
-  `;
-  db.query(insertAllSql, [device_id, temperature, humidity, timestamp], (err) => {
-    if (err) {
-      console.error('Bluetooth insert error:', err);
-      return res.status(500).json({ error: 'DB insert failed' });
-    }
-    console.log(`✅ Inserted into bluetooth_data for ${device_id}`);
-  });
-
-  // ✅ Check SLA breach
-  let breached = false;
-  let statusText = [];
-
-  if (temperature > 40) {
-    breached = true;
-    statusText.push('High Temp');
-  }
-  if (humidity > 90) {
-    breached = true;
-    statusText.push('High Humidity');
-  }
-
-  if (breached) {
-    const insertBreachSql = `
-      INSERT INTO sla_breaches_bluetooth (device_id, timestamp, temperature, humidity, status)
-      VALUES (?, FROM_UNIXTIME(?), ?, ?, ?)
-    `;
-    db.query(insertBreachSql, [
-      device_id,
-      timestamp,
-      temperature,
-      humidity,
-      statusText.join(', ')
-    ], (err) => {
-      if (err) {
-        console.error('SLA insert error:', err);
-        return res.status(500).json({ error: 'SLA insert failed' });
-      }
-      console.log(`🔥 SLA breach logged for ${device_id}`);
-    });
-  }
-
-  res.json({ message: 'Bluetooth data logged and SLA checked.' });
+router.get('/dashboard/bluetooth', (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/dashboard-bluetooth.html'));
 });
 
-// ✅ GET: Return all SLA breaches
-router.get('/api/breaches/bluetooth', (req, res) => {
-  const sql = 'SELECT * FROM sla_breaches_bluetooth ORDER BY timestamp DESC';
-  db.query(sql, (err, results) => {
-    if (err) return res.status(500).json({ error: 'Database error.' });
+router.get('/api/data/bluetooth', (req, res) => {
+  const query = `
+    SELECT s.*, d.device_id
+    FROM sensor_data s
+    JOIN devices d ON s.device_id = d.id
+    JOIN device_types t ON d.device_type_id = t.id
+    WHERE t.type_name = 'bluetooth'
+    ORDER BY s.timestamp DESC
+    LIMIT 100
+  `;
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("Error fetching Bluetooth sensor data:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
     res.json(results);
   });
 });
 
-// ✅ GET: Return all Bluetooth sensor data for dashboard
-router.get('/api/data/bluetooth', (req, res) => {
-  const sql = 'SELECT * FROM bluetooth_data ORDER BY timestamp DESC';
-  db.query(sql, (err, results) => {
+router.get('/api/breaches/bluetooth', (req, res) => {
+  const query = `
+    SELECT b.*, d.device_id
+    FROM sla_breaches b
+    JOIN devices d ON b.device_id = d.id
+    JOIN device_types t ON d.device_type_id = t.id
+    WHERE t.type_name = 'bluetooth'
+    ORDER BY b.timestamp DESC
+    LIMIT 100
+  `;
+  db.query(query, (err, results) => {
     if (err) {
-      console.error('Error fetching Bluetooth data:', err);
-      return res.status(500).json({ error: 'Failed to fetch data' });
+      console.error("Error fetching Bluetooth SLA breaches:", err);
+      return res.status(500).json({ error: "Database error" });
     }
     res.json(results);
   });

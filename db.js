@@ -4,7 +4,7 @@ const db = mysql.createConnection({
   host: 'mysql',  
   user: 'root',          
   password: '', 
-  database: 'iot_dashboard'  //dddsdsdsd
+  database: 'iot_dashboard' 
 });
 
 db.connect((err) => {

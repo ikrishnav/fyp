@@ -6,19 +6,19 @@ const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
 
 const db = mysql.createConnection({
-  host: 'mysql', // 🚨 This must match the service name in docker-compose.yml
+  host: 'mysql', 
   user: 'root',
-  password: '', // Ensure this matches MYSQL_ROOT_PASSWORD
+  password: '', 
   database: 'iot_dashboard'
 });
 
 
-// Serve login page
+
 router.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/login.html'));
 });
 
-// Login API
+
 router.post('/login', (req, res) => {
   const { email, password } = req.body;
 
@@ -35,16 +35,11 @@ router.post('/login', (req, res) => {
 
     const user = results[0];
 
-    // ✅ If passwords are hashed in DB, use this:
-    // const match = await bcrypt.compare(password, user.password);
-    // if (!match) return res.status(401).json({ success: false, message: 'Invalid username or password.' });
-
-    // ❗ If passwords are plaintext (for dev only), use this:
     if (password !== user.password) {
       return res.status(401).json({ success: false, message: 'Invalid username or password.' });
     }
 
-    // Save user session
+
     req.session.user = {
       id: user.id,
       email: user.email,
@@ -55,12 +50,12 @@ router.post('/login', (req, res) => {
   });
 });
 
-// Forgot password page
+
 router.get('/forgot', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/forgot.html'));
 });
 
-// Send OTP email
+
 router.post('/send-otp', (req, res) => {
   const { email } = req.body;
   const otp = Math.floor(100000 + Math.random() * 900000);
@@ -90,7 +85,7 @@ router.post('/send-otp', (req, res) => {
   });
 });
 
-// Reset password
+
 router.post('/reset-password', (req, res) => {
   const { email, otp, new_password } = req.body;
 

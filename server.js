@@ -4,6 +4,8 @@ const bodyParser = require('body-parser');
 const mysql = require('mysql2');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
+//docker-compose up -d --build
+
 
 const app = express();
 

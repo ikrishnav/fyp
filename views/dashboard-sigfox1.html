@@ -9,7 +9,6 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 </head>
-<!--krishna : main heading and cards-->
 <body>
   <div class="container py-4">
     <h2 class="text-center mb-5">📡 Sigfox 1 Dashboard - Environmental Monitoring</h2>
@@ -49,7 +48,6 @@
       <button class="btn btn-export" onclick="exportTrend('temp')">Export Temperature Data</button>
     </div>
 
-    <!--Hazima humidity trend chart+export-->
     <div class="card">
       <h5 class="card-title">📉 Humidity Trend</h5>
       <canvas id="humChart" height="110"></canvas>
@@ -63,7 +61,6 @@
       </div>
     </div>
 
-    <!--Naima : SLA breach table and export-->
     <div class="card">
       <h5 class="card-title">📋 SLA Breach Details</h5>
       <div class="table-responsive">
@@ -84,7 +81,6 @@
     </div>
   </div>
 
-  <!--naima: export button for sla breach-->
  <script>
   let tempCSV = [['Device ID', 'Timestamp', 'Temperature']];
   let humCSV = [['Device ID', 'Timestamp', 'Humidity']];
@@ -121,7 +117,6 @@
     const sensorData = await sensorRes.json();
     const breaches = await breachRes.json();
 
-    // === SLA Breach Table ===
     let breachRows = '';
     breaches.forEach(entry => {
       breachCSV.push([entry.device_id, entry.timestamp, entry.temperature, entry.humidity, entry.status]);
@@ -137,7 +132,6 @@
     });
     document.getElementById('sla-breach-table').innerHTML = breachRows;
 
-    // === Trend Graphs ===
     const grouped = {};
     const allTimestampsSet = new Set();
 

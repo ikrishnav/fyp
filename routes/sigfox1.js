@@ -1,71 +1,49 @@
+
 const express = require('express');
 const router = express.Router();
+const path = require('path');
 const db = require('../mqtt/db');
 
-// POST: Handle Sigfox callback (URL-encoded)
-// GET: Return all Sigfox1 sensor data (not just breaches)
+router.get('/dashboard/sigfox1', (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/dashboard-sigfox1.html'));
+});
+
 router.get('/api/data/sigfox1', (req, res) => {
-  const sql = 'SELECT * FROM sigfox1_data ORDER BY timestamp ASC';
-  db.query(sql, (err, results) => {
-    if (err) return res.status(500).json({ error: 'Database error.' });
-    res.json(results);
-  });
-});
-
-// GET: Return SLA breach data
-router.get('/api/breaches/sigfox1', (req, res) => {
-  const sql = 'SELECT * FROM sla_breaches_sigfox1 ORDER BY timestamp ASC';
-  db.query(sql, (err, results) => {
-    if (err) return res.status(500).json({ error: 'Database error.' });
-    res.json(results);
-  });
-});
-
-
-router.post('/api/sigfox1', (req, res) => {
-  const { device, data, time } = req.body;
-
-  if (!device || !data || !time) {
-    return res.status(400).json({ error: 'Missing fields from Sigfox callback' });
-  }
-
-  // Parse temp and humidity from payload (first byte = temp * 2, second byte = humidity)
-  const hexTemp = data.substring(0, 2);
-  const hexHum = data.substring(2, 4);
-  const temp = parseInt(hexTemp, 16) / 2;
-  const hum = parseInt(hexHum, 16);
-
-  const timestamp = new Date(parseInt(time) * 1000);
-
-  // Insert into main table
-  const insertDataSql = `
-    INSERT INTO sigfox1_data (device_id, temperature, humidity, timestamp)
-    VALUES (?, ?, ?, ?)
+  const query = `
+    SELECT s.*, d.device_id
+    FROM sensor_data s
+    JOIN devices d ON s.device_id = d.id
+    JOIN device_types t ON d.device_type_id = t.id
+    WHERE t.type_name = 'sigfox1'
+    ORDER BY s.timestamp DESC
+    LIMIT 100
   `;
-  db.query(insertDataSql, [device, temp, hum, timestamp], (err) => {
+  db.query(query, (err, results) => {
     if (err) {
-      console.error('Insert error:', err);
-      return res.status(500).json({ error: 'DB error' });
+      console.error("Error fetching sigfox1 sensor data:", err);
+      return res.status(500).json({ error: "Database error" });
     }
-    console.log(`✅ Data logged for ${device}: ${temp}°C / ${hum}%`);
+    res.json(results);
   });
+});
 
-  // Check SLA breach
-  let statusText = [];
-  if (temp > 40) statusText.push('High Temp');
-  if (hum > 90) statusText.push('High Humidity');
-
-  if (statusText.length > 0) {
-    const insertBreachSql = `
-      INSERT INTO sla_breaches_sigfox1 (device_id, timestamp, temperature, humidity, status)
-      VALUES (?, ?, ?, ?, ?)
-    `;
-    db.query(insertBreachSql, [device, timestamp, temp, hum, statusText.join(', ')], (err) => {
-      if (err) console.error('SLA insert error:', err);
-    });
-  }
-
-  res.status(200).send('Sigfox1 data processed');
+router.get('/api/breaches/sigfox1', (req, res) => {
+  const query = `
+    SELECT b.*, d.device_id
+    FROM sla_breaches b
+    JOIN devices d ON b.device_id = d.id
+    JOIN device_types t ON d.device_type_id = t.id
+    WHERE t.type_name = 'sigfox1'
+    ORDER BY b.timestamp DESC
+    LIMIT 100
+  `;
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("Error fetching sigfox1 SLA breaches:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+    res.json(results);
+  });
 });
 
 module.exports = router;

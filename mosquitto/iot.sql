@@ -1,12 +1,12 @@
-DROP DATABASE IF EXISTS `iot_dashboard`;
+DROP DATABASE IF EXISTS `testing_iot`;
 
 -- Create database
-CREATE DATABASE `iot_dashboard` 
+CREATE DATABASE `testing_iot` 
 DEFAULT CHARACTER SET utf8mb4 
 DEFAULT COLLATE utf8mb4_general_ci;
 
 -- Use the database
-USE `iot_dashboard`;
+USE `testing_iot`;
 
 -- Create device_types table
 CREATE TABLE `device_types` (
