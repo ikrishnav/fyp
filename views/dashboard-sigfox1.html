@@ -4,279 +4,705 @@
   <meta charset="UTF-8">
   <title>Sigfox 1 - IoT Environmental Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/sigfox1.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="/style.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 </head>
 <body>
-  <div class="container py-4">
-    <h2 class="text-center mb-5">📡 Sigfox 1 Dashboard - Environmental Monitoring</h2>
-
-    <div class="row text-center mb-4">
-      <div class="col-md-3">
-        <div class="card">
-          <div class="card-title">🌡️ Temperature</div>
-          <div id="latest-temp" class="value">-- °C</div>
-        </div>
+  <div class="dashboard-header">
+    <div class="container">
+      <div class="text-center">
+        <h1 class="dashboard-title floating-icon">📡 Sigfox 1 Dashboard</h1>
+        <p class="dashboard-subtitle">Real-time Environmental Monitoring System</p>
       </div>
-      <div class="col-md-3">
-        <div class="card">
-          <div class="card-title">💧 Humidity</div>
-          <div id="latest-hum" class="value">-- %</div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card">
-          <div class="card-title">📦 Devices Connected</div>
-          <div id="device-count" class="value">--</div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card">
-          <div class="card-title">⚠ SLA Status</div>
-          <div id="sla-status" class="value">OK</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="alert alert-warning text-center" id="sla-alert" style="display: none;"></div>
-
-    <div class="card">
-      <h5 class="card-title">📈 Temperature Trend</h5>
-      <canvas id="tempChart" height="110"></canvas>
-      <button class="btn btn-export" onclick="exportTrend('temp')">Export Temperature Data</button>
-    </div>
-
-    <div class="card">
-      <h5 class="card-title">📉 Humidity Trend</h5>
-      <canvas id="humChart" height="110"></canvas>
-      <button class="btn btn-export" onclick="exportTrend('hum')">Export Humidity Data</button>
-    </div>
-
-    <div class="card text-center">
-      <h5 class="card-title">🧮 SLA Compliance Overview</h5>
-      <div style="max-width: 480px; margin: auto;">
-        <canvas id="slaPieChart"></canvas>
-      </div>
-    </div>
-
-    <div class="card">
-      <h5 class="card-title">📋 SLA Breach Details</h5>
-      <div class="table-responsive">
-        <table class="table table-dark table-modern table-sm">
-          <thead>
-            <tr>
-              <th>Device ID</th>
-              <th>Timestamp</th>
-              <th>Temperature (°C)</th>
-              <th>Humidity (%)</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="sla-breach-table"></tbody>
-        </table>
-      </div>
-      <button class="btn btn-export" onclick="exportBreaches()">Export SLA Breaches</button>
     </div>
   </div>
+  <div class="container">
+    <!-- Metrics Grid -->
+    <div class="row g-4 mb-4">
+      <div class="col-lg-3 col-md-6">
+        <div class="metric-card ripple-effect">
+          <span class="metric-icon floating-icon">🌡️</span>
+          <div class="metric-title">Temperature</div>
+          <div id="latest-temp" class="metric-value">-- °C</div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <div class="metric-card ripple-effect">
+          <span class="metric-icon floating-icon">💧</span>
+          <div class="metric-title">Humidity</div>
+          <div id="latest-hum" class="metric-value">-- %</div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <div class="metric-card ripple-effect">
+          <span class="metric-icon floating-icon">📦</span>
+          <div class="metric-title">Connected Devices</div>
+          <div id="device-count" class="metric-value">--</div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <div class="metric-card ripple-effect">
+          <span class="metric-icon floating-icon">⚡</span>
+          <div class="metric-title">SLA Status</div>
+          <div id="sla-status" class="metric-value">OK</div>
+        </div>
+      </div>
+    </div>
+    <!-- Alert -->
+    <div class="alert alert-custom text-center" id="sla-alert" style="display: none;"></div>
+    <!-- Charts Grid -->
+    <div class="row g-4">
+      <!-- Temperature Chart -->
+      <div class="col-xl-6 col-lg-12">
+        <div class="chart-card">
+          <div class="chart-header">
+            <h5 class="chart-title">📈 Temperature Trends</h5>
+            <button class="export-btn ripple-effect" onclick="exportTrend('temp')">
+              📊 Export Data
+            </button>
+          </div>
+          <div style="height: 350px;">
+            <canvas id="tempChart" class="chart-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+      <!-- Humidity Chart -->
+      <div class="col-xl-6 col-lg-12">
+        <div class="chart-card">
+          <div class="chart-header">
+            <h5 class="chart-title">📉 Humidity Trends</h5>
+            <button class="export-btn ripple-effect" onclick="exportTrend('hum')">
+              📊 Export Data
+            </button>
+          </div>
+          <div style="height: 350px;">
+            <canvas id="humChart" class="chart-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+      <!-- SLA Compliance Chart -->
+      <div class="col-xl-4 col-lg-12">
+        <div class="pie-chart-container">
+          <h5 class="chart-title mb-4">🎯 SLA Compliance</h5>
+          <div style="height: 350px;">
+            <canvas id="slaPieChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <!-- SLA Breach Table -->
+      <div class="col-xl-8 col-lg-12">
+        <div class="chart-card">
+          <div class="chart-header">
+            <h5 class="chart-title">📋 SLA Breach Details</h5>
+            <button class="export-btn ripple-effect" onclick="exportBreaches()">
+              📊 Export Breaches
+            </button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-modern">
+              <thead>
+                <tr>
+                  <th>Device ID</th>
+                  <th>Timestamp</th>
+                  <th>Temperature</th>
+                  <th>Humidity</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="sla-breach-table">
+                <tr>
+                  <td colspan="5" class="text-center text-muted">No breaches detected</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- PLACE: Place Name Modal -->
+  <div id="place-modal" style="display:none; position:fixed; left:0; top:0; width:100vw; height:100vh; z-index:1000; background:rgba(0,0,0,0.4);">
+    <div style="
+        position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+        background:rgba(30,36,60,0.7);
+        box-shadow: 0 4px 24px 0 rgba(0,0,0,0.5);
+        border-radius: 24px;
+        padding:36px 32px 28px 32px; min-width:320px; max-width:90vw;
+        backdrop-filter: blur(16px) saturate(140%);
+        border: 1px solid rgba(255,255,255,0.11);
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      " id="place-modal-box">
+      <div style="font-size:1.2rem; font-weight:600; letter-spacing:.02em; margin-bottom:10px;">
+        Add / Edit Place Name
+      </div>
+      <input id="place-input" type="text" placeholder="Enter location..." style="
+          border-radius: 10px;
+          border: 1px solid rgba(255,255,255,0.18);
+          padding: 12px;
+          background: rgba(255,255,255,0.13);
+          color: #fff; font-size:1rem; outline: none;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+          margin-bottom: 8px;
+        ">
+      <div style="display: flex; gap: 10px; margin-top:8px; justify-content:flex-end;">
+        <button id="place-cancel" style="
+            padding: 8px 20px; border:none;
+            border-radius: 8px; background:rgba(255,255,255,0.10); color:#fff; cursor:pointer;
+            font-size:1rem;
+            transition: background 0.2s;
+        ">Cancel</button>
+        <button id="place-ok" style="
+            padding: 8px 24px; border:none;
+            border-radius: 8px; background:linear-gradient(90deg,#24c6dc,#5433ff); color:#fff; cursor:pointer;
+            font-size:1rem;
+            font-weight: 600;
+            transition: background 0.2s;
+        ">Save</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    let tempCSV = [['Device ID', 'Timestamp', 'Temperature']];
+    let humCSV = [['Device ID', 'Timestamp', 'Humidity']];
+    let breachCSV = [['Device ID', 'Timestamp', 'Temperature', 'Humidity', 'Status']];
 
- <script>
-  let tempCSV = [['Device ID', 'Timestamp', 'Temperature']];
-  let humCSV = [['Device ID', 'Timestamp', 'Humidity']];
-  let breachCSV = [['Device ID', 'Timestamp', 'Temperature', 'Humidity', 'Status']];
+    // PLACE: Place annotation storage
+    const placeLabels = {}; // timestamp → place
+    const pointIdMap = {};  // timestamp → sensor_data.id
 
-  function downloadCSV(data, filename) {
-    const csvContent = data.map(row => row.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", filename);
-    link.click();
-  }
-
-  function exportTrend(type) {
-    if (type === 'temp') {
-      downloadCSV(tempCSV, 'temperature_data.csv');
-    } else if (type === 'hum') {
-      downloadCSV(humCSV, 'humidity_data.csv');
+    function downloadCSV(data, filename) {
+      const csvContent = data.map(row => row.join(",")).join("\n");
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", filename);
+      link.click();
     }
-  }
 
-  function exportBreaches() {
-    downloadCSV(breachCSV, 'sla_breach_data.csv');
-  }
+    function exportTrend(type) {
+      if (type === 'temp') {
+        downloadCSV(tempCSV, 'temperature_data.csv');
+      } else if (type === 'hum') {
+        downloadCSV(humCSV, 'humidity_data.csv');
+      }
+    }
 
-  async function fetchData() {
-    const [sensorRes, breachRes] = await Promise.all([
-      fetch('/api/data/sigfox1'),
-      fetch('/api/breaches/sigfox1')
-    ]);
+    function exportBreaches() {
+      downloadCSV(breachCSV, 'sla_breach_data.csv');
+    }
 
-    const sensorData = await sensorRes.json();
-    const breaches = await breachRes.json();
+    // PLACE: Modal logic copied from Wi-Fi dashboard
+    function showPlaceModal(currentPlace, onOk) {
+      const modal = document.getElementById('place-modal');
+      const input = document.getElementById('place-input');
+      input.value = currentPlace || '';
+      modal.style.display = 'block';
+      input.focus();
 
-    let breachRows = '';
-    breaches.forEach(entry => {
-      breachCSV.push([entry.device_id, entry.timestamp, entry.temperature, entry.humidity, entry.status]);
-      breachRows += `
-        <tr>
-          <td>${entry.device_id}</td>
-          <td>${new Date(entry.timestamp).toLocaleTimeString()}</td>
-          <td>${entry.temperature}</td>
-          <td>${entry.humidity}</td>
-          <td>${entry.status}</td>
-        </tr>
-      `;
-    });
-    document.getElementById('sla-breach-table').innerHTML = breachRows;
-
-    const grouped = {};
-    const allTimestampsSet = new Set();
-
-    sensorData.forEach(entry => {
-      const ts = new Date(entry.timestamp).toLocaleTimeString();
-      allTimestampsSet.add(ts);
-      if (!grouped[entry.device_id]) grouped[entry.device_id] = [];
-      grouped[entry.device_id].push(entry);
-    });
-
-    const allTimestamps = Array.from(allTimestampsSet).sort();
-
-    let latestTemp = '--', latestHum = '--';
-    let totalDevices = Object.keys(grouped).length;
-    let slaBreached = breaches.length;
-    let totalReadings = sensorData.length;
-
-    const tempDatasets = [], humDatasets = [];
-    const pieLabels = ['Compliant', 'Breached'];
-    let pieData = [totalReadings - slaBreached, slaBreached];
-
-    const colors = ['#3b82f6', '#f43f5e', '#22c55e', '#f97316'];
-    let colorIndex = 0;
-
-    for (const device in grouped) {
-      const deviceData = grouped[device];
-      const deviceTimeMap = {};
-      deviceData.forEach(d => {
-        const ts = new Date(d.timestamp).toLocaleTimeString();
-        deviceTimeMap[ts] = d;
-      });
-
-      const alignedTemps = allTimestamps.map(ts => deviceTimeMap[ts] ? deviceTimeMap[ts].temperature : null);
-      const alignedHums = allTimestamps.map(ts => deviceTimeMap[ts] ? deviceTimeMap[ts].humidity : null);
-
-      deviceData.forEach(entry => {
-        const ts = new Date(entry.timestamp).toLocaleTimeString();
-        tempCSV.push([entry.device_id, ts, entry.temperature]);
-        humCSV.push([entry.device_id, ts, entry.humidity]);
-      });
-
-      tempDatasets.push({
-        label: `Device ${device}`,
-        data: alignedTemps,
-        borderColor: colors[colorIndex % colors.length],
-        backgroundColor: colors[colorIndex % colors.length] + '40',
-        tension: 0.4,
-        fill: true,
-        pointRadius: 3
-      });
-
-      humDatasets.push({
-        label: `Device ${device}`,
-        data: alignedHums,
-        borderColor: colors[(colorIndex + 1) % colors.length],
-        backgroundColor: colors[(colorIndex + 1) % colors.length] + '40',
-        tension: 0.4,
-        fill: true,
-        pointRadius: 3
-      });
-
-      if (colorIndex === 0) {
-        latestTemp = alignedTemps.slice().reverse().find(v => v !== null);
-        latestHum = alignedHums.slice().reverse().find(v => v !== null);
+      function cleanup() {
+        modal.style.display = 'none';
+        document.getElementById('place-ok').onclick = null;
+        document.getElementById('place-cancel').onclick = null;
+        input.onkeydown = null;
       }
 
-      colorIndex++;
+      document.getElementById('place-ok').onclick = function() {
+        cleanup();
+        onOk(input.value);
+      };
+      document.getElementById('place-cancel').onclick = function() {
+        cleanup();
+        onOk(null);
+      };
+      input.onkeydown = function(e) {
+        if (e.key === 'Enter') {
+          cleanup();
+          onOk(input.value);
+        }
+        if (e.key === 'Escape') {
+          cleanup();
+          onOk(null);
+        }
+      };
     }
 
-    document.getElementById("latest-temp").innerText = `${latestTemp} °C`;
-    document.getElementById("latest-hum").innerText = `${latestHum} %`;
-    document.getElementById("device-count").innerText = totalDevices;
-    document.getElementById("sla-status").innerText = slaBreached > 0 ? "BREACHED" : "OK";
-    if (slaBreached > 0) {
-      document.getElementById("sla-alert").style.display = 'block';
-      document.getElementById("sla-alert").innerText = `⚠ SLA BREACH: ${slaBreached} anomalies detected.`;
+    // PLACE: Chart click handler
+    function attachCanvasClickHandler(chart, labels) {
+      const canvas = chart.canvas;
+      canvas.onclick = async function(evt) {
+        const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+        if (!points.length) return;
+        const pointIndex = points[0].index;
+        const ts = labels[pointIndex];
+        const existingPlace = placeLabels[ts] || '';
+        showPlaceModal(existingPlace, async (newPlace) => {
+          if (newPlace !== null && newPlace.trim() !== "") {
+            placeLabels[ts] = newPlace;
+            const readingId = pointIdMap[ts];
+            if (readingId) {
+              await fetch(`/api/data/sigfox1/${readingId}/place`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ place_name: newPlace })
+              });
+              await fetchData();
+            }
+          }
+        });
+      };
     }
 
-    new Chart(document.getElementById('tempChart').getContext('2d'), {
-      type: 'line',
-      data: { labels: allTimestamps, datasets: tempDatasets },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { labels: { color: 'white' } },
-          tooltip: { mode: 'index', intersect: false },
-          datalabels: { display: false }
-        },
-        interaction: { mode: 'nearest', axis: 'x', intersect: false },
-        scales: {
-          x: { ticks: { color: 'white' } },
-          y: { ticks: { color: 'white' }, beginAtZero: true }
-        }
-      },
-      plugins: [ChartDataLabels]
-    });
+    // Animate values with counting effect
+    function animateValue(element, start, end, duration, suffix = '') {
+      if (start === end) return;
+      const range = end - start;
+      const minTimer = 50;
+      let stepTime = Math.abs(Math.floor(duration / range));
+      stepTime = Math.max(stepTime, minTimer);
+      const startTime = new Date().getTime();
+      const endTime = startTime + duration;
+      let timer;
 
-    new Chart(document.getElementById('humChart').getContext('2d'), {
-      type: 'line',
-      data: { labels: allTimestamps, datasets: humDatasets },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { labels: { color: 'white' } },
-          tooltip: { mode: 'index', intersect: false },
-          datalabels: { display: false }
-        },
-        interaction: { mode: 'nearest', axis: 'x', intersect: false },
-        scales: {
-          x: { ticks: { color: 'white' } },
-          y: { ticks: { color: 'white' }, beginAtZero: true }
+      function run() {
+        const now = new Date().getTime();
+        const remaining = Math.max((endTime - now) / duration, 0);
+        const value = Math.round(end - (remaining * range));
+        element.innerHTML = value + suffix;
+        if (value == end) {
+          clearInterval(timer);
         }
-      },
-      plugins: [ChartDataLabels]
-    });
+      }
 
-    new Chart(document.getElementById('slaPieChart').getContext('2d'), {
-      type: 'doughnut',
-      data: {
-        labels: pieLabels,
-        datasets: [{
-          data: pieData,
-          backgroundColor: ['#22c55e', '#ef4444'],
-          borderWidth: 1
-        }]
-      },
-      options: {
-        plugins: {
-          legend: {
-            labels: {
-              color: 'white',
-              font: { size: 14 }
+      timer = setInterval(run, stepTime);
+      run();
+    }
+
+    async function fetchData() {
+      try {
+        // PLACE: clear
+        for (const key in placeLabels) delete placeLabels[key];
+        for (const key in pointIdMap) delete pointIdMap[key];
+
+        const [sensorRes, breachRes] = await Promise.all([
+          fetch('/api/data/sigfox1'),
+          fetch('/api/breaches/sigfox1')
+        ]);
+
+        const sensorData = await sensorRes.json();
+        const breaches = await breachRes.json();
+
+        let breachRows = '';
+        breaches.forEach(entry => {
+          breachCSV.push([entry.device_id, entry.timestamp, entry.temperature, entry.humidity, entry.status]);
+          breachRows += `
+            <tr>
+              <td><strong>${entry.device_id}</strong></td>
+              <td>${new Date(entry.timestamp).toLocaleString()}</td>
+              <td>${entry.temperature}°C</td>
+              <td>${entry.humidity}%</td>
+              <td><span class="status-breached">${entry.status}</span></td>
+            </tr>
+          `;
+        });
+
+        if (breachRows) {
+          document.getElementById('sla-breach-table').innerHTML = breachRows;
+        }
+
+        const grouped = {};
+        const allTimestampsSet = new Set();
+
+        sensorData.forEach(entry => {
+          const ts = new Date(entry.timestamp).toLocaleTimeString();
+          allTimestampsSet.add(ts);
+          if (!grouped[entry.device_id]) grouped[entry.device_id] = [];
+          grouped[entry.device_id].push({ ...entry, ts }); // PLACE
+          // PLACE: collect annotation info
+          if (entry.place_name) placeLabels[ts] = entry.place_name;
+          pointIdMap[ts] = entry.id;
+        });
+
+        const allTimestamps = Array.from(allTimestampsSet).sort();
+
+        let latestTemp = '--', latestHum = '--';
+        let totalDevices = Object.keys(grouped).length;
+        let slaBreached = breaches.length;
+        let totalReadings = sensorData.length;
+
+        const tempDatasets = [], humDatasets = [];
+        const pieLabels = ['Compliant', 'Breached'];
+        let pieData = [totalReadings - slaBreached, slaBreached];
+
+        const purpleColors = [
+          '#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe',
+          '#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe'
+        ];
+        let colorIndex = 0;
+
+        for (const device in grouped) {
+          const deviceData = grouped[device];
+          const deviceTimeMap = {};
+          deviceData.forEach(d => {
+            const ts = d.ts; // PLACE
+            deviceTimeMap[ts] = d;
+          });
+
+          const alignedTemps = allTimestamps.map(ts => deviceTimeMap[ts] ? deviceTimeMap[ts].temperature : null);
+          const alignedHums = allTimestamps.map(ts => deviceTimeMap[ts] ? deviceTimeMap[ts].humidity : null);
+
+          deviceData.forEach(entry => {
+            const ts = entry.ts; // PLACE
+            tempCSV.push([entry.device_id, ts, entry.temperature]);
+            humCSV.push([entry.device_id, ts, entry.humidity]);
+          });
+
+          tempDatasets.push({
+            label: `Device ${device}`,
+            data: alignedTemps,
+            borderColor: purpleColors[colorIndex % purpleColors.length],
+            backgroundColor: purpleColors[colorIndex % purpleColors.length] + '15',
+            tension: 0.4,
+            fill: true,
+            pointRadius: 5,
+            pointHoverRadius: 8,
+            borderWidth: 3,
+            pointBackgroundColor: purpleColors[colorIndex % purpleColors.length],
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointHoverBorderWidth: 3
+          });
+
+          humDatasets.push({
+            label: `Device ${device}`,
+            data: alignedHums,
+            borderColor: purpleColors[(colorIndex + 1) % purpleColors.length],
+            backgroundColor: purpleColors[(colorIndex + 1) % purpleColors.length] + '15',
+            tension: 0.4,
+            fill: true,
+            pointRadius: 5,
+            pointHoverRadius: 8,
+            borderWidth: 3,
+            pointBackgroundColor: purpleColors[(colorIndex + 1) % purpleColors.length],
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointHoverBorderWidth: 3
+          });
+
+          if (colorIndex === 0) {
+            latestTemp = alignedTemps.slice().reverse().find(v => v !== null);
+            latestHum = alignedHums.slice().reverse().find(v => v !== null);
+          }
+
+          colorIndex++;
+        }
+
+        // Animate metric updates
+        const tempElement = document.getElementById("latest-temp");
+        const humElement = document.getElementById("latest-hum");
+        const deviceElement = document.getElementById("device-count");
+
+        if (latestTemp !== '--') {
+          animateValue(tempElement, 0, parseInt(latestTemp), 1000, '°C');
+        } else {
+          tempElement.innerText = '-- °C';
+        }
+
+        if (latestHum !== '--') {
+          animateValue(humElement, 0, parseInt(latestHum), 1200, '%');
+        } else {
+          humElement.innerText = '-- %';
+        }
+
+        animateValue(deviceElement, 0, totalDevices, 800);
+
+        const slaStatusElement = document.getElementById("sla-status");
+        if (slaBreached > 0) {
+          slaStatusElement.innerHTML = '<span class="status-breached">BREACHED</span>';
+          document.getElementById("sla-alert").style.display = 'block';
+          document.getElementById("sla-alert").innerHTML = `⚠️ <strong>SLA BREACH DETECTED:</strong> ${slaBreached} anomalies found across your IoT network.`;
+        } else {
+          slaStatusElement.innerHTML = '<span class="status-ok">OK</span>';
+        }
+
+        // Enhanced chart options with animations
+        const chartOptions = {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: 2000,
+            easing: 'easeInOutQuart'
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                usePointStyle: true,
+                padding: 25,
+                font: { size: 13, weight: '600' },
+                color: '#374151'
+              }
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false,
+              backgroundColor: 'rgba(30, 41, 59, 0.9)',
+              titleColor: 'white',
+              bodyColor: 'white',
+              borderColor: '#8b5cf6',
+              borderWidth: 2,
+              cornerRadius: 12,
+              displayColors: true,
+              callbacks: {
+                // PLACE: Show place in tooltip
+                title: function(context) {
+                  const label = context[0].label;
+                  return '🕒 ' + label + (placeLabels[label] ? ' - ' + placeLabels[label] : '');
+                },
+                label: function(context) {
+                  return context.dataset.label + ': ' + context.formattedValue + (context.datasetIndex === 0 ? '°C' : '%');
+                }
+              }
+            },
+            datalabels: { display: false }
+          },
+          interaction: {
+            mode: 'nearest',
+            axis: 'x',
+            intersect: false
+          },
+          scales: {
+            x: {
+              grid: {
+                color: 'rgba(139, 92, 246, 0.1)',
+                borderDash: [5, 5]
+              },
+              ticks: {
+                font: { size: 12, weight: '500' },
+                color: '#6b7280'
+              }
+            },
+            y: {
+              grid: {
+                color: 'rgba(139, 92, 246, 0.1)',
+                borderDash: [5, 5]
+              },
+              ticks: {
+                font: { size: 12, weight: '500' },
+                color: '#6b7280'
+              },
+              beginAtZero: true
             }
           },
-          datalabels: {
-            color: '#fff',
-            formatter: (value, ctx) => value + ' readings'
+          elements: {
+            point: {
+              hoverRadius: 10
+            }
           }
-        }
-      },
-      plugins: [ChartDataLabels]
-    });
-  }
+        };
 
-  fetchData();
-</script>
+        // Destroy old charts before making new ones
+        if (window.tempChartObj) window.tempChartObj.destroy();
+        if (window.humChartObj) window.humChartObj.destroy();
+
+        // Create enhanced charts with animations
+        window.tempChartObj = new Chart(document.getElementById('tempChart').getContext('2d'), {
+          type: 'line',
+          data: { labels: allTimestamps, datasets: tempDatasets },
+          options: chartOptions,
+          plugins: [ChartDataLabels]
+        });
+        window.humChartObj = new Chart(document.getElementById('humChart').getContext('2d'), {
+          type: 'line',
+          data: { labels: allTimestamps, datasets: humDatasets },
+          options: chartOptions,
+          plugins: [ChartDataLabels]
+        });
+
+        // PLACE: Attach chart click handler to both charts
+        attachCanvasClickHandler(window.tempChartObj, allTimestamps);
+        attachCanvasClickHandler(window.humChartObj, allTimestamps);
+
+        // Enhanced pie chart with gradient colors
+        new Chart(document.getElementById('slaPieChart').getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: pieLabels,
+            datasets: [{
+              data: pieData,
+              backgroundColor: [
+                'linear-gradient(135deg, #10b981, #059669)',
+                'linear-gradient(135deg, #ef4444, #dc2626)'
+              ],
+              borderWidth: 0,
+              cutout: '65%',
+              borderRadius: 10,
+              hoverOffset: 15
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+              animateRotate: true,
+              animateScale: true,
+              duration: 2000,
+              easing: 'easeInOutQuart'
+            },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  usePointStyle: true,
+                  padding: 25,
+                  font: { size: 14, weight: '600' },
+                  color: '#374151'
+                }
+              },
+              tooltip: {
+                backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                titleColor: 'white',
+                bodyColor: 'white',
+                borderColor: '#8b5cf6',
+                borderWidth: 2,
+                cornerRadius: 12,
+                callbacks: {
+                  label: function(context) {
+                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    const percentage = ((context.parsed * 100) / total).toFixed(1);
+                    return context.label + ': ' + context.formattedValue + ' readings (' + percentage + '%)';
+                  }
+                }
+              },
+              datalabels: {
+                color: '#fff',
+                font: { size: 16, weight: 'bold' },
+                formatter: (value, ctx) => {
+                  const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = ((value * 100) / total).toFixed(1);
+                  return percentage + '%';
+                },
+                anchor: 'center',
+                align: 'center'
+              }
+            },
+            onHover: (event, activeElements) => {
+              event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
+            }
+          },
+          plugins: [ChartDataLabels]
+        });
+
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        // Show loading skeletons or error state
+        showErrorState();
+      }
+    }
+
+    function showErrorState() {
+      document.getElementById("latest-temp").innerHTML = '<div class="loading-skeleton"></div>';
+      document.getElementById("latest-hum").innerHTML = '<div class="loading-skeleton"></div>';
+      document.getElementById("device-count").innerHTML = '<div class="loading-skeleton"></div>';
+    }
+
+    // Add click effects to buttons
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('export-btn')) {
+        // Create ripple effect
+        const button = e.target;
+        const ripple = document.createElement('span');
+        const rect = button.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const x = e.clientX - rect.left - size / 2;
+        const y = e.clientY - rect.top - size / 2;
+        ripple.style.width = ripple.style.height = size + 'px';
+        ripple.style.left = x + 'px';
+        ripple.style.top = y + 'px';
+        ripple.classList.add('ripple');
+        button.appendChild(ripple);
+        setTimeout(() => { ripple.remove(); }, 600);
+      }
+    });
+
+    // Add intersection observer for scroll animations
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }
+      });
+    }, observerOptions);
+    document.querySelectorAll('.chart-card, .pie-chart-container').forEach(card => {
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(30px)';
+      observer.observe(card);
+    });
+
+    // Add page visibility API for auto-refresh
+    let refreshInterval;
+    function startAutoRefresh() {
+      refreshInterval = setInterval(fetchData, 30000);
+    }
+    function stopAutoRefresh() {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+      }
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        stopAutoRefresh();
+      } else {
+        startAutoRefresh();
+      }
+    });
+
+    // Initialize dashboard with loading animation
+    document.addEventListener('DOMContentLoaded', () => {
+      // Add staggered animation to metric cards
+      const metricCards = document.querySelectorAll('.metric-card');
+      metricCards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(30px)';
+        setTimeout(() => {
+          card.style.opacity = '1';
+          card.style.transform = 'translateY(0)';
+        }, index * 100);
+      });
+      // Start data fetching and auto-refresh
+      fetchData();
+      startAutoRefresh();
+    });
+
+    // Add CSS for ripple effect
+    const style = document.createElement('style');
+    style.textContent = `
+      .ripple {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(0);
+        animation: ripple-animation 0.6s linear;
+        pointer-events: none;
+      }
+      @keyframes ripple-animation {
+        to {
+          transform: scale(4);
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
 </body>
 </html>

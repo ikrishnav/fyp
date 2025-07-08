@@ -5,109 +5,135 @@
   <title>Admin - IoT Environmental Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="/style.css" rel="stylesheet">
+  <link rel="stylesheet" href="/admin.css">
+  
 </head>
 <body>
-<div class="container py-4">
-  <h2 class="text-center mb-5">🛠️ Admin Dashboard - All Devices Overview</h2>
-
-  <div class="alert alert-warning text-center" id="sla-alert" style="display:none;"></div>
-
-  <div id="sections-container"></div>
-</div>
-
-<script>
-const SOURCES = ['sigfox1', 'sigfox2', 'wifi', 'bluetooth'];
-
-const labels = {
-  sigfox1: '📡 Sigfox 1',
-  sigfox2: '📡 Sigfox 2',
-  wifi: '📶 Wi-Fi',
-  bluetooth: '🔵 Bluetooth'
-};
-
-function createSection(type, label) {
-  return `
-    <div class="card mb-5">
-      <h5 class="card-title text-center pt-3">${label} ${type === 'data' ? 'Sensor Readings' : 'SLA Breaches'}</h5>
-      <div class="table-responsive">
-        <table class="table table-dark table-sm">
-          <thead>
-            <tr><th>Device ID</th><th>Timestamp</th><th>Temperature (°C)</th><th>Humidity (%)</th><th>Status</th></tr>
-          </thead>
-          <tbody id="${type}-${label.toLowerCase().replace(/[^a-z0-9]/g, '')}"></tbody>
-        </table>
+  <div class="main-header">
+    <div class="container">
+      <div class="text-center">
+        <h2 class="mb-2">🛠️ Admin Dashboard - All Devices Overview</h2>
+        <p class="mb-0 opacity-75">Real-time monitoring for all connected devices</p>
       </div>
-      <button class="btn btn-outline-light mb-3" onclick="exportCSV('${type}-${label.toLowerCase().replace(/[^a-z0-9]/g, '')}')">Export CSV</button>
     </div>
-  `;
-}
+  </div>
 
-function setupSections() {
-  const container = document.getElementById('sections-container');
-  SOURCES.forEach(src => {
-    container.innerHTML += createSection('data', labels[src]);
-    container.innerHTML += createSection('breach', labels[src]);
-  });
-}
+  <div class="container py-4">
+    <div class="alert alert-warning text-center" id="sla-alert" style="display:none;"></div>
 
-function exportCSV(tableId) {
-  const rows = Array.from(document.querySelectorAll(`#${tableId} tr`)).map(tr =>
-    Array.from(tr.children).map(td => td.innerText)
-  );
-  const csv = rows.map(r => r.join(",")).join("\n");
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `${tableId}.csv`;
-  link.click();
-}
+    <div id="sections-container"></div>
+  </div>
 
-async function fetchAndDisplay() {
-  const dataRes = await fetch('/api/data/admin');
-  const breachRes = await fetch('/api/breaches/admin');
+  <script>
+    const SOURCES = ['sigfox1', 'sigfox2', 'wifi', 'bluetooth'];
 
-  const data = await dataRes.json();
-  const breaches = await breachRes.json();
+    const labels = {
+      sigfox1: '📡 Sigfox 1',
+      sigfox2: '📡 Sigfox 2',
+      wifi: '📶 Wi-Fi',
+      bluetooth: '🔵 Bluetooth'
+    };
 
-  let totalBreaches = 0;
+    function createSection(type, label) {
+      return `
+        <div class="card">
+          <h5 class="card-title">${label} ${type === 'data' ? 'Sensor Readings' : 'SLA Breaches'}</h5>
+          <div class="table-responsive">
+            <table class="table table-dark table-sm">
+              <thead>
+                <tr><th>Device ID</th><th>Timestamp</th><th>Temperature (°C)</th><th>Humidity (%)</th><th>Status</th></tr>
+              </thead>
+              <tbody id="${type}-${label.toLowerCase().replace(/[^a-z0-9]/g, '')}"></tbody>
+            </table>
+          </div>
+          <button class="btn btn-outline-light" onclick="exportCSV('${type}-${label.toLowerCase().replace(/[^a-z0-9]/g, '')}')">📥 Export CSV</button>
+        </div>
+      `;
+    }
 
-  data.forEach(entry => {
-    const id = `data-${labels[entry.source].toLowerCase().replace(/[^a-z0-9]/g, '')}`;
-    const row = `
-      <tr>
-        <td>${entry.device_id}</td>
-        <td>${new Date(entry.timestamp).toLocaleString()}</td>
-        <td>${entry.temperature}</td>
-        <td>${entry.humidity}</td>
-        <td>OK</td>
-      </tr>`;
-    document.getElementById(id).innerHTML += row;
-  });
+    function setupSections() {
+      const container = document.getElementById('sections-container');
+      SOURCES.forEach(src => {
+        container.innerHTML += createSection('data', labels[src]);
+        container.innerHTML += createSection('breach', labels[src]);
+      });
+    }
 
-  breaches.forEach(entry => {
-    const id = `breach-${labels[entry.source].toLowerCase().replace(/[^a-z0-9]/g, '')}`;
-    const row = `
-      <tr>
-        <td>${entry.device_id}</td>
-        <td>${new Date(entry.timestamp).toLocaleString()}</td>
-        <td>${entry.temperature}</td>
-        <td>${entry.humidity}</td>
-        <td>${entry.status}</td>
-      </tr>`;
-    document.getElementById(id).innerHTML += row;
-    totalBreaches++;
-  });
+    function exportCSV(tableId) {
+      const rows = Array.from(document.querySelectorAll(`#${tableId} tr`)).map(tr =>
+        Array.from(tr.children).map(td => td.innerText)
+      );
+      const csv = rows.map(r => r.join(",")).join("\n");
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `${tableId}.csv`;
+      link.click();
+    }
 
-  if (totalBreaches > 0) {
-    const alertBox = document.getElementById("sla-alert");
-    alertBox.style.display = "block";
-    alertBox.innerText = `⚠ SLA BREACH: ${totalBreaches} anomalies detected across all sources.`;
-  }
-}
+    function getStatusBadge(status) {
+      if (status === 'OK') {
+        return `<span class="status-badge status-ok">✅ ${status}</span>`;
+      } else if (status.includes('WARNING')) {
+        return `<span class="status-badge status-warning">⚠️ ${status}</span>`;
+      } else {
+        return `<span class="status-badge status-danger">❌ ${status}</span>`;
+      }
+    }
 
-setupSections();
-fetchAndDisplay();
-</script>
+    async function fetchAndDisplay() {
+      const dataRes = await fetch('/api/data/admin');
+      const breachRes = await fetch('/api/breaches/admin');
+
+      const data = await dataRes.json();
+      const breaches = await breachRes.json();
+
+      let totalBreaches = 0;
+
+      data.forEach(entry => {
+        const id = `data-${labels[entry.source].toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+        const row = `
+          <tr>
+            <td><strong>${entry.device_id}</strong></td>
+            <td>${new Date(entry.timestamp).toLocaleString()}</td>
+            <td><span style="color: var(--primary-blue); font-weight: 500;">${entry.temperature}°C</span></td>
+            <td><span style="color: var(--success-green); font-weight: 500;">${entry.humidity}%</span></td>
+            <td>${getStatusBadge('OK')}</td>
+          </tr>`;
+        document.getElementById(id).innerHTML += row;
+      });
+
+      breaches.forEach(entry => {
+        const id = `breach-${labels[entry.source].toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+        const row = `
+          <tr>
+            <td><strong>${entry.device_id}</strong></td>
+            <td>${new Date(entry.timestamp).toLocaleString()}</td>
+            <td><span style="color: var(--danger-red); font-weight: 500;">${entry.temperature}°C</span></td>
+            <td><span style="color: var(--warning-orange); font-weight: 500;">${entry.humidity}%</span></td>
+            <td>${getStatusBadge(entry.status)}</td>
+          </tr>`;
+        document.getElementById(id).innerHTML += row;
+        totalBreaches++;
+      });
+
+      if (totalBreaches > 0) {
+        const alertBox = document.getElementById("sla-alert");
+        alertBox.style.display = "block";
+        alertBox.innerHTML = `
+          <div class="d-flex align-items-center justify-content-center">
+            <span style="font-size: 1.5rem; margin-right: 1rem;">🚨</span>
+            <div>
+              <strong>SLA BREACH DETECTED</strong><br>
+              ${totalBreaches} anomalies detected across all sources
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    setupSections();
+    fetchAndDisplay();
+  </script>
 </body>
 </html>

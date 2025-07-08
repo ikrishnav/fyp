@@ -4,80 +4,92 @@
   <meta charset="UTF-8">
   <title>Bluetooth - IoT Environmental Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="/style.css" rel="stylesheet">
+  <link rel="stylesheet" href="/bluetooth.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 </head>
 <body>
-  <div class="container py-4">
-    <h2 class="text-center mb-5">📲 Bluetooth Dashboard - Environmental Monitoring</h2>
+  <div class="container">
+    <div class="header">
+      <h1>📲 Bluetooth IoT Dashboard</h1>
+      <p>Real-time Environmental Monitoring System</p>
+    </div>
 
-    <div class="row text-center mb-4">
-      <div class="col-md-3">
-        <div class="card">
-          <div class="card-title">🌡️ Temperature</div>
-          <div id="latest-temp" class="value">-- °C</div>
-        </div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-icon">🌡️</span>
+        <div id="latest-temp" class="stat-value">-- °C</div>
+        <div class="stat-label">Temperature</div>
       </div>
-      <div class="col-md-3">
-        <div class="card">
-          <div class="card-title">💧 Humidity</div>
-          <div id="latest-hum" class="value">-- %</div>
-        </div>
+      <div class="stat-card">
+        <span class="stat-icon">💧</span>
+        <div id="latest-hum" class="stat-value">-- %</div>
+        <div class="stat-label">Humidity</div>
       </div>
-      <div class="col-md-3">
-        <div class="card">
-          <div class="card-title">📦 Devices Connected</div>
-          <div id="device-count" class="value">--</div>
-        </div>
+      <div class="stat-card">
+        <span class="stat-icon">📦</span>
+        <div id="device-count" class="stat-value">--</div>
+        <div class="stat-label">Devices Connected</div>
       </div>
-      <div class="col-md-3">
-        <div class="card">
-          <div class="card-title">⚠ SLA Status</div>
-          <div id="sla-status" class="value">OK</div>
-        </div>
+      <div class="stat-card">
+        <span class="stat-icon">⚠️</span>
+        <div id="sla-status" class="stat-value status-ok">OK</div>
+        <div class="stat-label">SLA Status</div>
       </div>
     </div>
 
-    <div class="alert alert-warning text-center" id="sla-alert" style="display: none;"></div>
+    <div class="alert" id="sla-alert"></div>
 
-    <div class="card">
-      <h5 class="card-title">📈 Temperature Trend</h5>
-      <canvas id="tempChart" height="110"></canvas>
-      <button class="btn btn-export" onclick="exportTrend('temp')">Export Temperature Data</button>
-    </div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3 class="chart-title">📈 Temperature Trend</h3>
+        <div class="chart-container">
+          <canvas id="tempChart"></canvas>
+        </div>
+        <button class="btn" onclick="exportTrend('temp')">Export Temperature Data</button>
+      </div>
 
-    <div class="card">
-      <h5 class="card-title">📉 Humidity Trend</h5>
-      <canvas id="humChart" height="110"></canvas>
-      <button class="btn btn-export" onclick="exportTrend('hum')">Export Humidity Data</button>
-    </div>
-
-    <div class="card text-center">
-      <h5 class="card-title">🧮 SLA Compliance Overview</h5>
-      <div style="max-width: 480px; margin: auto;">
-        <canvas id="slaPieChart"></canvas>
+      <div class="chart-card">
+        <h3 class="chart-title">📉 Humidity Trend</h3>
+        <div class="chart-container">
+          <canvas id="humChart"></canvas>
+        </div>
+        <button class="btn" onclick="exportTrend('hum')">Export Humidity Data</button>
       </div>
     </div>
 
-    <div class="card">
-      <h5 class="card-title">📋 SLA Breach Details</h5>
-      <div class="table-responsive">
-        <table class="table table-dark table-modern table-sm">
-          <thead>
-            <tr>
-              <th>Device ID</th>
-              <th>Timestamp</th>
-              <th>Temperature (°C)</th>
-              <th>Humidity (%)</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="sla-breach-table"></tbody>
-        </table>
+    <div class="sla-section">
+      <div class="sla-chart-card">
+        <h3 class="chart-title">🧮 SLA Compliance</h3>
+        <div class="sla-chart-container">
+          <canvas id="slaPieChart"></canvas>
+        </div>
       </div>
-      <button class="btn btn-export" onclick="exportBreaches()">Export SLA Breaches</button>
+
+      <div class="breach-table-card">
+        <h3 class="chart-title">📋 SLA Breach Details</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Device ID</th>
+                <th>Timestamp</th>
+                <th>Temperature (°C)</th>
+                <th>Humidity (%)</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="sla-breach-table">
+              <tr>
+                <td colspan="5" class="loading">
+                  <div class="spinner"></div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <button class="btn" onclick="exportBreaches()">Export SLA Breaches</button>
+      </div>
     </div>
   </div>
 
@@ -85,6 +97,71 @@
     let tempCSV = [['Device ID', 'Timestamp', 'Temperature']];
     let humCSV = [['Device ID', 'Timestamp', 'Humidity']];
     let breachCSV = [['Device ID', 'Timestamp', 'Temperature', 'Humidity', 'Status']];
+    // For Place label support
+    let tempChartInstance = null;
+    let humChartInstance = null;
+    let slaPieChartInstance = null;
+    const placeLabels = {}; // Holds timestamp → place name
+    const pointIdMap = {};  // Holds timestamp → sensor_data.id
+
+    function showPlaceModal(currentPlace, onOk) {
+      const modal = document.getElementById('place-modal');
+      const input = document.getElementById('place-input');
+      input.value = currentPlace || '';
+      modal.style.display = 'block';
+      input.focus();
+
+      function cleanup() {
+        modal.style.display = 'none';
+        document.getElementById('place-ok').onclick = null;
+        document.getElementById('place-cancel').onclick = null;
+        input.onkeydown = null;
+      }
+
+      document.getElementById('place-ok').onclick = function() {
+        cleanup();
+        onOk(input.value);
+      };
+      document.getElementById('place-cancel').onclick = function() {
+        cleanup();
+        onOk(null); // treat as cancel
+      };
+      input.onkeydown = function(e) {
+        if (e.key === 'Enter') {
+          cleanup();
+          onOk(input.value);
+        }
+        if (e.key === 'Escape') {
+          cleanup();
+          onOk(null);
+        }
+      };
+    }
+    // Chart click handler for annotation (Chart.js v3+)
+    function attachCanvasClickHandler(chart, labels) {
+      const canvas = chart.canvas;
+      canvas.onclick = async function(evt) {
+        const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+        if (!points.length) return;
+        const pointIndex = points[0].index;
+        const ts = labels[pointIndex];
+        const existingPlace = placeLabels[ts] || '';
+        showPlaceModal(existingPlace, async (newPlace) => {
+          if (newPlace !== null && newPlace.trim() !== "") {
+            placeLabels[ts] = newPlace;
+            const readingId = pointIdMap[ts];
+            if (readingId) {
+              await fetch(`/api/data/bluetooth/${readingId}/place`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ place_name: newPlace })
+              });
+              await fetchData();
+            }
+          }
+        });
+      }
+    }
 
     function downloadCSV(data, filename) {
       const csvContent = data.map(row => row.join(",")).join("\n");
@@ -108,175 +185,365 @@
       downloadCSV(breachCSV, 'sla_breach_data.csv');
     }
 
-
-    async function fetchData() {
-  const [sensorRes, breachRes] = await Promise.all([
-    fetch('/api/data/bluetooth'),
-    fetch('/api/breaches/bluetooth')
-  ]);
-
-  const sensorData = await sensorRes.json();
-  const breaches = await breachRes.json();
-
-  let breachRows = '';
-  breaches.forEach(entry => {
-    breachCSV.push([entry.device_id, entry.timestamp, entry.temperature, entry.humidity, entry.status]);
-    breachRows += `
-      <tr>
-        <td>${entry.device_id}</td>
-        <td>${new Date(entry.timestamp).toLocaleTimeString()}</td>
-        <td>${entry.temperature}</td>
-        <td>${entry.humidity}</td>
-        <td>${entry.status}</td>
-      </tr>
-    `;
-  });
-  document.getElementById('sla-breach-table').innerHTML = breachRows;
-
-  const grouped = {};
-  const allTimestampsSet = new Set();
-  sensorData.forEach(entry => {
-    const ts = new Date(entry.timestamp).toLocaleTimeString();
-    allTimestampsSet.add(ts);
-    if (!grouped[entry.device_id]) grouped[entry.device_id] = [];
-    grouped[entry.device_id].push(entry);
-  });
-  const allTimestamps = Array.from(allTimestampsSet).sort();
-
-  let latestTemp = '--', latestHum = '--';
-  let totalDevices = Object.keys(grouped).length;
-  let slaBreached = breaches.length;
-  let totalReadings = sensorData.length;
-
-  const tempDatasets = [], humDatasets = [];
-  const pieLabels = ['Compliant', 'Breached'];
-  let pieData = [totalReadings - slaBreached, slaBreached];
-
-  const colors = ['#3b82f6', '#f43f5e', '#22c55e', '#f97316'];
-  let colorIndex = 0;
-
-  for (const device in grouped) {
-    const deviceData = grouped[device];
-    const deviceTimeMap = {};
-    deviceData.forEach(d => {
-      const ts = new Date(d.timestamp).toLocaleTimeString();
-      deviceTimeMap[ts] = d;
-    });
-
-    const alignedTemps = allTimestamps.map(ts => deviceTimeMap[ts] ? deviceTimeMap[ts].temperature : null);
-    const alignedHums = allTimestamps.map(ts => deviceTimeMap[ts] ? deviceTimeMap[ts].humidity : null);
-
-    deviceData.forEach(entry => {
-      const ts = new Date(entry.timestamp).toLocaleTimeString();
-      tempCSV.push([entry.device_id, ts, entry.temperature]);
-      humCSV.push([entry.device_id, ts, entry.humidity]);
-    });
-
-    tempDatasets.push({
-      label: `Device ${device}`,
-      data: alignedTemps,
-      borderColor: colors[colorIndex % colors.length],
-      backgroundColor: colors[colorIndex % colors.length] + '40',
-      tension: 0.4,
-      fill: true,
-      pointRadius: 3
-    });
-
-    humDatasets.push({
-      label: `Device ${device}`,
-      data: alignedHums,
-      borderColor: colors[(colorIndex + 1) % colors.length],
-      backgroundColor: colors[(colorIndex + 1) % colors.length] + '40',
-      tension: 0.4,
-      fill: true,
-      pointRadius: 3
-    });
-
-    if (colorIndex === 0) {
-      latestTemp = alignedTemps.slice().reverse().find(v => v !== null);
-      latestHum = alignedHums.slice().reverse().find(v => v !== null);
-    }
-
-    colorIndex++;
-  }
-
-  document.getElementById("latest-temp").innerText = `${latestTemp} °C`;
-  document.getElementById("latest-hum").innerText = `${latestHum} %`;
-  document.getElementById("device-count").innerText = totalDevices;
-  document.getElementById("sla-status").innerText = slaBreached > 0 ? "BREACHED" : "OK";
-  if (slaBreached > 0) {
-    document.getElementById("sla-alert").style.display = 'block';
-    document.getElementById("sla-alert").innerText = `⚠ SLA BREACH: ${slaBreached} anomalies detected.`;
-  }
-
-  new Chart(document.getElementById('tempChart').getContext('2d'), {
-    type: 'line',
-    data: { labels: allTimestamps, datasets: tempDatasets },
-    options: {
+    // Chart configuration
+    const chartOptions = {
       responsive: true,
-      plugins: {
-        legend: { labels: { color: 'white' } },
-        tooltip: { mode: 'index', intersect: false },
-        datalabels: { display: false }
-      },
-      interaction: { mode: 'nearest', axis: 'x', intersect: false },
-      scales: {
-        x: { ticks: { color: 'white' } },
-        y: { ticks: { color: 'white' }, beginAtZero: true }
-      }
-    },
-    plugins: [ChartDataLabels]
-  });
-
-  new Chart(document.getElementById('humChart').getContext('2d'), {
-    type: 'line',
-    data: { labels: allTimestamps, datasets: humDatasets },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { labels: { color: 'white' } },
-        tooltip: { mode: 'index', intersect: false },
-        datalabels: { display: false }
-      },
-      interaction: { mode: 'nearest', axis: 'x', intersect: false },
-      scales: {
-        x: { ticks: { color: 'white' } },
-        y: { ticks: { color: 'white' }, beginAtZero: true }
-      }
-    },
-    plugins: [ChartDataLabels]
-  });
-
-  new Chart(document.getElementById('slaPieChart').getContext('2d'), {
-    type: 'doughnut',
-    data: {
-      labels: pieLabels,
-      datasets: [{
-        data: pieData,
-        backgroundColor: ['#22c55e', '#ef4444'],
-        borderWidth: 1
-      }]
-    },
-    options: {
+      maintainAspectRatio: false,
       plugins: {
         legend: {
           labels: {
-            color: 'white',
-            font: { size: 14 }
+            color: '#e2e8f0',
+            font: { size: 12 },
+            usePointStyle: true,
+            padding: 20
           }
         },
-        datalabels: {
-          color: '#fff',
-          formatter: (value, ctx) => value + ' readings'
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          backgroundColor: 'rgba(30, 41, 59, 0.9)',
+          titleColor: '#667eea',
+          bodyColor: '#e2e8f0',
+          borderColor: '#667eea',
+          borderWidth: 1,
+          cornerRadius: 8
+        },
+        datalabels: { display: false }
+      },
+      interaction: {
+        mode: 'nearest',
+        axis: 'x',
+        intersect: false
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: '#a0aec0',
+            font: { size: 11 }
+          },
+          grid: {
+            color: 'rgba(255, 255, 255, 0.1)',
+            drawBorder: false
+          }
+        },
+        y: {
+          ticks: {
+            color: '#a0aec0',
+            font: { size: 11 }
+          },
+          grid: {
+            color: 'rgba(255, 255, 255, 0.1)',
+            drawBorder: false
+          },
+          beginAtZero: true
+        }
+      },
+      elements: {
+        line: {
+          tension: 0.4
+        },
+        point: {
+          radius: 4,
+          hoverRadius: 6
         }
       }
+    };
+    let tempChartObj = null;
+    let humChartObj = null;
+    let slaPieChartObj = null;
+
+
+    async function fetchData() {
+  try {
+    const [sensorRes, breachRes] = await Promise.all([
+      fetch('/api/data/bluetooth'),
+      fetch('/api/breaches/bluetooth')
+    ]);
+
+    const sensorData = await sensorRes.json();
+    const breaches = await breachRes.json();
+
+    // 👈 Clear previous place labels and point map
+    for (const key in placeLabels) delete placeLabels[key];
+    for (const key in pointIdMap) delete pointIdMap[key];
+
+    let breachRows = '';
+    breaches.forEach(entry => {
+      breachCSV.push([entry.device_id, entry.timestamp, entry.temperature, entry.humidity, entry.status]);
+      breachRows += `
+        <tr>
+          <td>${entry.device_id}</td>
+          <td>${new Date(entry.timestamp).toLocaleTimeString()}</td>
+          <td>${entry.temperature}</td>
+          <td>${entry.humidity}</td>
+          <td class="${entry.status === 'OK' ? 'status-ok' : 'status-breach'}">${entry.status}</td>
+        </tr>
+      `;
+    });
+    document.getElementById('sla-breach-table').innerHTML = breachRows || '<tr><td colspan="5" style="text-align: center; color: #a0aec0;">No breaches recorded</td></tr>';
+
+    const grouped = {};
+    const allTimestampsSet = new Set();
+    sensorData.forEach(entry => {
+      const ts = new Date(entry.timestamp).toLocaleTimeString();
+      allTimestampsSet.add(ts);
+      if (!grouped[entry.device_id]) grouped[entry.device_id] = [];
+      grouped[entry.device_id].push(entry);
+
+      // 👈 Save place_name and sensor id for chart annotation
+      if (entry.place_name) placeLabels[ts] = entry.place_name;
+      pointIdMap[ts] = entry.id;
+    });
+    const allTimestamps = Array.from(allTimestampsSet).sort();
+
+    let latestTemp = '--', latestHum = '--';
+    let totalDevices = Object.keys(grouped).length;
+    let slaBreached = breaches.length;
+    let totalReadings = sensorData.length;
+
+    const tempDatasets = [], humDatasets = [];
+    const pieLabels = ['Compliant', 'Breached'];
+    let pieData = [totalReadings - slaBreached, slaBreached];
+
+    const colors = [
+      { bg: '#667eea', border: '#5a67d8' },
+      { bg: '#f093fb', border: '#f093fb' },
+      { bg: '#4fd1c7', border: '#38b2ac' },
+      { bg: '#fc8181', border: '#f56565' },
+      { bg: '#68d391', border: '#48bb78' },
+      { bg: '#fbb6ce', border: '#ed64a6' }
+    ];
+
+    let colorIndex = 0;
+
+    for (const device in grouped) {
+      const deviceData = grouped[device];
+      const deviceTimeMap = {};
+      deviceData.forEach(d => {
+        const ts = new Date(d.timestamp).toLocaleTimeString();
+        deviceTimeMap[ts] = d;
+      });
+
+      const alignedTemps = allTimestamps.map(ts => deviceTimeMap[ts] ? deviceTimeMap[ts].temperature : null);
+      const alignedHums = allTimestamps.map(ts => deviceTimeMap[ts] ? deviceTimeMap[ts].humidity : null);
+
+      deviceData.forEach(entry => {
+        const ts = new Date(entry.timestamp).toLocaleTimeString();
+        tempCSV.push([entry.device_id, ts, entry.temperature]);
+        humCSV.push([entry.device_id, ts, entry.humidity]);
+      });
+
+      const currentColor = colors[colorIndex % colors.length];
+
+      tempDatasets.push({
+        label: `Device ${device}`,
+        data: alignedTemps,
+        borderColor: currentColor.border,
+        backgroundColor: currentColor.bg + '20',
+        tension: 0.4,
+        fill: true,
+        pointRadius: 3,
+        pointHoverRadius: 6,
+        pointBackgroundColor: currentColor.bg,
+        pointBorderColor: currentColor.border,
+        pointBorderWidth: 2
+      });
+
+      humDatasets.push({
+        label: `Device ${device}`,
+        data: alignedHums,
+        borderColor: currentColor.border,
+        backgroundColor: currentColor.bg + '20',
+        tension: 0.4,
+        fill: true,
+        pointRadius: 3,
+        pointHoverRadius: 6,
+        pointBackgroundColor: currentColor.bg,
+        pointBorderColor: currentColor.border,
+        pointBorderWidth: 2
+      });
+
+      if (colorIndex === 0) {
+        latestTemp = alignedTemps.slice().reverse().find(v => v !== null);
+        latestHum = alignedHums.slice().reverse().find(v => v !== null);
+      }
+
+      colorIndex++;
+    }
+
+    // Update UI
+    document.getElementById("latest-temp").innerText = `${latestTemp || '--'} °C`;
+    document.getElementById("latest-hum").innerText = `${latestHum || '--'} %`;
+    document.getElementById("device-count").innerText = totalDevices;
+    
+    const slaStatusElement = document.getElementById("sla-status");
+    if (slaBreached > 0) {
+      slaStatusElement.innerText = "BREACHED";
+      slaStatusElement.className = "stat-value status-breach";
+      document.getElementById("sla-alert").style.display = 'block';
+      document.getElementById("sla-alert").innerText = `⚠️ SLA BREACH: ${slaBreached} anomalies detected.`;
+    } else {
+      slaStatusElement.innerText = "OK";
+      slaStatusElement.className = "stat-value status-ok";
+      document.getElementById("sla-alert").style.display = 'none';
+    }
+
+    
+
+    // Temperature Chart
+// Destroy previous charts if they exist
+if (tempChartObj) tempChartObj.destroy();
+if (humChartObj) humChartObj.destroy();
+if (slaPieChartObj) slaPieChartObj.destroy();
+
+// Temperature Chart
+tempChartObj = new Chart(document.getElementById('tempChart').getContext('2d'), {
+  type: 'line',
+  data: { labels: allTimestamps, datasets: tempDatasets },
+  options: {
+    ...chartOptions,
+    plugins: {
+      ...chartOptions.plugins,
+      tooltip: {
+        ...chartOptions.plugins.tooltip,
+        callbacks: {
+          title: (items) => {
+            const label = items[0].label;
+            return `${label}${placeLabels[label] ? ' - ' + placeLabels[label] : ''}`;
+          }
+        }
+      }
+    }
+  },
+  plugins: [ChartDataLabels]
+});
+attachCanvasClickHandler(tempChartObj, allTimestamps);
+
+// Humidity Chart
+humChartObj = new Chart(document.getElementById('humChart').getContext('2d'), {
+  type: 'line',
+  data: { labels: allTimestamps, datasets: humDatasets },
+  options: {
+    ...chartOptions,
+    plugins: {
+      ...chartOptions.plugins,
+      tooltip: {
+        ...chartOptions.plugins.tooltip,
+        callbacks: {
+          title: (items) => {
+            const label = items[0].label;
+            return `${label}${placeLabels[label] ? ' - ' + placeLabels[label] : ''}`;
+          }
+        }
+      }
+    }
+  },
+  plugins: [ChartDataLabels]
+});
+attachCanvasClickHandler(humChartObj, allTimestamps);
+
+// SLA Pie Chart
+slaPieChartObj = new Chart(document.getElementById('slaPieChart').getContext('2d'), {
+  type: 'doughnut',
+  data: {
+    labels: pieLabels,
+    datasets: [{
+      data: pieData,
+      backgroundColor: ['#10b981', '#ef4444'],
+      borderColor: ['#059669', '#dc2626'],
+      borderWidth: 2,
+      hoverOffset: 10
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: {
+          color: '#e2e8f0',
+          font: { size: 14 },
+          usePointStyle: true,
+          padding: 20
+        }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(30, 41, 59, 0.9)',
+        titleColor: '#667eea',
+        bodyColor: '#e2e8f0',
+        borderColor: '#667eea',
+        borderWidth: 1,
+        cornerRadius: 8
+      },
+      datalabels: {
+        color: '#fff',
+        font: { size: 12, weight: 'bold' },
+        formatter: (value, ctx) => value + ' readings'
+      }
     },
-    plugins: [ChartDataLabels]
-  });
+    cutout: '60%'
+  },
+  plugins: [ChartDataLabels]
+});
+
+
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    document.getElementById('sla-breach-table').innerHTML = '<tr><td colspan="5" style="text-align: center; color: #ef4444;">Error loading data</td></tr>';
+  }
 }
 
-fetchData();
-</script>
+
+    // Initialize dashboard
+    fetchData();
+    
+    // Auto-refresh every 30 seconds
+    setInterval(fetchData, 30000);
+  </script>
+  <!-- Custom Modal for Place Input -->
+<div id="place-modal" style="display:none; position:fixed; left:0; top:0; width:100vw; height:100vh; z-index:1000; background:rgba(0,0,0,0.4);">
+  <div style="
+      position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+      background:rgba(30,36,60,0.7);
+      box-shadow: 0 4px 24px 0 rgba(0,0,0,0.5);
+      border-radius: 24px;
+      padding:36px 32px 28px 32px; min-width:320px; max-width:90vw;
+      backdrop-filter: blur(16px) saturate(140%);
+      border: 1px solid rgba(255,255,255,0.11);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    " id="place-modal-box">
+    <div style="font-size:1.2rem; font-weight:600; letter-spacing:.02em; margin-bottom:10px;">
+      Add / Edit Place Name
+    </div>
+    <input id="place-input" type="text" placeholder="Enter location..." style="
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.18);
+        padding: 12px;
+        background: rgba(255,255,255,0.13);
+        color: #fff; font-size:1rem; outline: none;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+        margin-bottom: 8px;
+      ">
+    <div style="display: flex; gap: 10px; margin-top:8px; justify-content:flex-end;">
+      <button id="place-cancel" style="
+          padding: 8px 20px; border:none;
+          border-radius: 8px; background:rgba(255,255,255,0.10); color:#fff; cursor:pointer;
+          font-size:1rem;
+          transition: background 0.2s;
+      ">Cancel</button>
+      <button id="place-ok" style="
+          padding: 8px 24px; border:none;
+          border-radius: 8px; background:linear-gradient(90deg,#24c6dc,#5433ff); color:#fff; cursor:pointer;
+          font-size:1rem;
+          font-weight: 600;
+          transition: background 0.2s;
+      ">Save</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>

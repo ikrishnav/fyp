@@ -1,58 +1,209 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>Wi-Fi - IoT Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="/style.css" rel="stylesheet" />
+  <link href="/wifi.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 </head>
+
 <body>
   <div class="container py-4">
     <h2 class="text-center mb-5">📶 Wi-Fi Dashboard - Environmental Monitoring</h2>
 
     <div class="row text-center mb-4">
-      <div class="col-md-3"><div class="card"><div class="card-title">🌡️ Temperature</div><div id="latest-temp" class="value">-- °C</div></div></div>
-      <div class="col-md-3"><div class="card"><div class="card-title">💧 Humidity</div><div id="latest-hum" class="value">-- %</div></div></div>
-      <div class="col-md-3"><div class="card"><div class="card-title">📦 Devices Connected</div><div id="device-count" class="value">--</div></div></div>
-      <div class="col-md-3"><div class="card"><div class="card-title">⚠ SLA Status</div><div id="sla-status" class="value">OK</div></div></div>
-    </div>
-
-    <div class="alert alert-warning text-center" id="sla-alert" style="display: none;"></div>
-
-    <div class="card"><h5 class="card-title">📈 Temperature Trend</h5><canvas id="tempChart" height="110"></canvas></div>
-    <div class="card"><h5 class="card-title">📉 Humidity Trend</h5><canvas id="humChart" height="110"></canvas></div>
-    <div class="card text-center"><h5 class="card-title">🧮 SLA Compliance</h5><div style="max-width: 480px; margin: auto;"><canvas id="slaPieChart"></canvas></div></div>
-
-    <div class="card">
-      <h5 class="card-title">📋 SLA Breach Details</h5>
-      <div class="table-responsive">
-        <table class="table table-dark table-modern table-sm">
-          <thead>
-            <tr><th>Device ID</th><th>Timestamp</th><th>Temp (°C)</th><th>Humidity (%)</th><th>Status</th></tr>
-          </thead>
-          <tbody id="sla-breach-table"></tbody>
-        </table>
+      <div class="col-md-3">
+        <div class="card modern-card">
+          <div class="card-title">🌡️ Temperature</div>
+          <div id="latest-temp" class="value">-- °C</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card modern-card">
+          <div class="card-title">💧 Humidity</div>
+          <div id="latest-hum" class="value">-- %</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card modern-card">
+          <div class="card-title">📦 Devices Connected</div>
+          <div id="device-count" class="value">--</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card modern-card">
+          <div class="card-title">⚠ SLA Status</div>
+          <div id="sla-status" class="value">
+            <span class="status-indicator status-ok"></span>OK
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- ✅ Export Buttons -->
-    <div class="text-center my-3">
+    <div class="text-center my-3 d-flex align-items-center">
       <button class="btn btn-export" onclick="exportTrend('temp')">Export Temperature CSV</button>
       <button class="btn btn-export" onclick="exportTrend('hum')">Export Humidity CSV</button>
       <button class="btn btn-export" onclick="exportBreaches()">Export SLA Breach CSV</button>
     </div>
+    
+    <div class="alert alert-warning text-center" id="sla-alert" style="display: none;"></div>
+    
+    <div class="row">
+      <div class="col-md-6">
+        <div class="card modern-card chart-container temp-chart">
+          <h5 class="card-title chart-title">🌡️ Temperature Trend</h5>
+          <canvas id="tempChart" height="300"></canvas>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card modern-card text-center">
+          <h5 class="card-title chart-title">🧮 SLA Compliance</h5>
+          <div class="sla-chart-container pulse-animation">
+            <div class="sla-chart-wrapper">
+              <canvas id="slaPieChart"></canvas>
+              <div class="sla-center-content">
+                <div id="sla-percentage" class="sla-main-value">0.00</div>
+                <div class="sla-value-label">Compliance</div>
+              </div>
+              <div class="sla-scale-labels">
+                <div class="sla-scale-label scale-0">0</div>
+                <div class="sla-scale-label scale-30">30</div>
+                <div class="sla-scale-label scale-100">100</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card modern-card chart-container hum-chart">
+          <h5 class="card-title chart-title">💧 Humidity Trend</h5>
+          <canvas id="humChart" height="350"></canvas>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card modern-card">
+          <h5 class="card-title chart-title">📋 SLA Breach Details</h5>
+          <div class="table-responsive">
+            <table class="table table-dark table-modern table-sm">
+              <thead>
+                <tr>
+                  <th>Device ID</th>
+                  <th>Timestamp</th>
+                  <th>Temp (°C)</th>
+                  <th>Humidity (%)</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="sla-breach-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <script>
-    // ✅ CSV storage arrays
+<script>
+       function showPlaceModal(currentPlace, onOk) {
+      const modal = document.getElementById('place-modal');
+      const input = document.getElementById('place-input');
+      input.value = currentPlace || '';
+      modal.style.display = 'block';
+      input.focus();
+
+      function cleanup() {
+        modal.style.display = 'none';
+        document.getElementById('place-ok').onclick = null;
+        document.getElementById('place-cancel').onclick = null;
+        input.onkeydown = null;
+      }
+
+      document.getElementById('place-ok').onclick = function() {
+        cleanup();
+        onOk(input.value);
+      };
+      document.getElementById('place-cancel').onclick = function() {
+        cleanup();
+        onOk(null); // treat as cancel
+      };
+      input.onkeydown = function(e) {
+        if (e.key === 'Enter') {
+          cleanup();
+          onOk(input.value);
+        }
+        if (e.key === 'Escape') {
+          cleanup();
+          onOk(null);
+        }
+      };
+    }
+
+
     let tempCSV = [['Device ID', 'Timestamp', 'Temperature']];
     let humCSV = [['Device ID', 'Timestamp', 'Humidity']];
     let breachCSV = [['Device ID', 'Timestamp', 'Temperature', 'Humidity', 'Status']];
+    const placeLabels = {}; // Holds timestamp → place name
+    const pointIdMap = {};  // Holds timestamp → sensor_data.id
+
+    // We'll store chart objects to avoid memory leaks on reload
+    let tempChartObj = null;
+    let humChartObj = null;
+
+    // Chart click handler for annotation (works for Chart.js v3+)
+    function attachCanvasClickHandler(chart, otherChart, labels) {
+      const canvas = chart.canvas;
+      canvas.onclick = async function(evt) {
+        const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+        if (!points.length) return;
+        const pointIndex = points[0].index;
+        const ts = labels[pointIndex];
+        const existingPlace = placeLabels[ts] || '';
+        showPlaceModal(existingPlace, async (newPlace) => {
+          if (newPlace !== null && newPlace.trim() !== "") {
+            placeLabels[ts] = newPlace;
+            const readingId = pointIdMap[ts];
+            if (readingId) {
+              await fetch(`/api/data/wifi/${readingId}/place`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ place_name: newPlace })
+              });
+              await fetchData();
+            }
+          }
+        });
+        return; // Prevent any further code after this inside the click handler!
+
+        if (newPlace !== null && newPlace.trim() !== "") {
+          placeLabels[ts] = newPlace;
+
+          // Update backend
+          const readingId = pointIdMap[ts];
+          if (readingId) {
+            await fetch(`/api/data/wifi/${readingId}/place`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ place_name: newPlace })
+            });
+            await fetchData(); // Instantly reloads all data & updates UI
+          }
+        }
+      }
+    }
 
     async function fetchData() {
+      tempCSV = [['Device ID', 'Timestamp', 'Temperature']];
+      humCSV = [['Device ID', 'Timestamp', 'Humidity']];
+      breachCSV = [['Device ID', 'Timestamp', 'Temperature', 'Humidity', 'Status']];
+
+      // Clear previous placeLabels and pointIdMap!
+      for (const key in placeLabels) delete placeLabels[key];
+      for (const key in pointIdMap) delete pointIdMap[key];
+
       const res = await fetch('/api/data/wifi');
       const breachRes = await fetch('/api/breaches/wifi');
 
@@ -80,9 +231,10 @@
         const ts = new Date(entry.timestamp).toLocaleTimeString();
         allTimestampsSet.add(ts);
         if (!grouped[entry.device_id]) grouped[entry.device_id] = [];
-        grouped[entry.device_id].push({ ...entry, ts });
+          grouped[entry.device_id].push({ ...entry, ts });
+          if (entry.place_name) placeLabels[ts] = entry.place_name;
+          pointIdMap[ts] = entry.id;
 
-        // ✅ Fill CSV data
         tempCSV.push([entry.device_id, ts, entry.temperature]);
         humCSV.push([entry.device_id, ts, entry.humidity]);
       });
@@ -111,16 +263,34 @@
           label: device,
           data: alignedTemps,
           borderColor: colors[colorIndex % colors.length],
-          backgroundColor: colors[colorIndex % colors.length] + '40',
-          fill: true, tension: 0.4, pointRadius: 3
+          backgroundColor: colors[colorIndex % colors.length] + '20',
+          fill: true, 
+          tension: 0.4, 
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderWidth: 3,
+          pointBackgroundColor: colors[colorIndex % colors.length],
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointHoverBackgroundColor: '#ffffff',
+          pointHoverBorderColor: colors[colorIndex % colors.length]
         });
 
         humDatasets.push({
           label: device,
           data: alignedHums,
           borderColor: colors[(colorIndex + 1) % colors.length],
-          backgroundColor: colors[(colorIndex + 1) % colors.length] + '40',
-          fill: true, tension: 0.4, pointRadius: 3
+          backgroundColor: colors[(colorIndex + 1) % colors.length] + '20',
+          fill: true, 
+          tension: 0.4, 
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderWidth: 3,
+          pointBackgroundColor: colors[(colorIndex + 1) % colors.length],
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointHoverBackgroundColor: '#ffffff',
+          pointHoverBorderColor: colors[(colorIndex + 1) % colors.length]
         });
 
         colorIndex++;
@@ -128,76 +298,264 @@
 
       const totalReadings = data.length;
       const compliant = Math.max(0, totalReadings - slaBreached);
+      const compliancePercentage = totalReadings > 0 ? ((compliant / totalReadings) * 100).toFixed(2) : 0;
 
       document.getElementById("latest-temp").innerText = `${latestTemp} °C`;
       document.getElementById("latest-hum").innerText = `${latestHum} %`;
       document.getElementById("device-count").innerText = Object.keys(grouped).length;
-      document.getElementById("sla-status").innerText = slaBreached > 0 ? "BREACHED" : "OK";
+      
+      // Update SLA status with indicator
+      const slaStatusEl = document.getElementById("sla-status");
       if (slaBreached > 0) {
+        slaStatusEl.innerHTML = '<span class="status-indicator status-breach"></span>BREACHED';
         document.getElementById("sla-alert").style.display = 'block';
         document.getElementById("sla-alert").innerText = `⚠ SLA BREACH: ${slaBreached} entries.`;
+      } else {
+        slaStatusEl.innerHTML = '<span class="status-indicator status-ok"></span>OK';
       }
 
-      new Chart(document.getElementById('tempChart'), {
+      // Update the center percentage display
+      document.getElementById("sla-percentage").innerText = compliancePercentage;
+
+      // Destroy old charts before making new ones
+      if (tempChartObj) tempChartObj.destroy();
+      if (humChartObj) humChartObj.destroy();
+
+      // Temperature Chart with Enhanced Design
+      tempChartObj = new Chart(document.getElementById('tempChart'), {
         type: 'line',
         data: { labels: allTimestamps, datasets: tempDatasets },
         options: {
           responsive: true,
           plugins: {
-            legend: { labels: { color: 'white' } },
-            datalabels: { display: false }
+            legend: { 
+              labels: { 
+                color: 'white',
+                font: { size: 12, weight: 'bold' },
+                usePointStyle: true,
+                pointStyle: 'circle',
+                padding: 20
+              }
+            },
+            datalabels: { display: false },
+            // 👉 Add this block!
+            tooltip: {
+              callbacks: {
+                title: (items) => {
+                  const label = items[0].label;
+                  return `${label}${placeLabels[label] ? ' - ' + placeLabels[label] : ''}`;
+                }
+              }
+            }
           },
           scales: {
-            x: { ticks: { color: 'white' } },
-            y: { ticks: { color: 'white' }, beginAtZero: true }
+            x: { 
+              ticks: { 
+                color: '#ccc',
+                font: { size: 10 }
+              },
+              grid: {
+                color: 'rgba(255,255,255,0.1)',
+                borderDash: [5, 5]
+              }
+            },
+            y: { 
+              ticks: { 
+                color: '#ccc',
+                font: { size: 10 }
+              },
+              grid: {
+                color: 'rgba(255,255,255,0.1)',
+                borderDash: [5, 5]
+              },
+              beginAtZero: true
+            }
+          },
+          elements: {
+            line: {
+              tension: 0.4,
+              borderWidth: 3,
+              borderCapStyle: 'round',
+              borderJoinStyle: 'round'
+            },
+            point: {
+              radius: 5,
+              hoverRadius: 8,
+              borderWidth: 2,
+              backgroundColor: 'rgba(255,255,255,0.8)',
+              borderColor: '#ef4444',
+              hoverBackgroundColor: '#ef4444',
+              hoverBorderColor: 'white'
+            }
+          },
+          interaction: {
+            intersect: false,
+            mode: 'index'
+          },
+          animation: {
+            duration: 2000,
+            easing: 'easeOutQuart'
           }
         },
         plugins: [ChartDataLabels]
       });
 
-      new Chart(document.getElementById('humChart'), {
+      // Humidity Chart with Enhanced Design
+      humChartObj = new Chart(document.getElementById('humChart'), {
         type: 'line',
         data: { labels: allTimestamps, datasets: humDatasets },
         options: {
           responsive: true,
           plugins: {
-            legend: { labels: { color: 'white' } },
-            datalabels: { display: false }
+            legend: { 
+              labels: { 
+                color: 'white',
+                font: { size: 12, weight: 'bold' },
+                usePointStyle: true,
+                pointStyle: 'circle',
+                padding: 20
+              }
+            },
+            datalabels: { display: false },
+            // 👉 Add this block!
+            tooltip: {
+              callbacks: {
+                title: (items) => {
+                  const label = items[0].label;
+                  return `${label}${placeLabels[label] ? ' - ' + placeLabels[label] : ''}`;
+                }
+              }
+            }
           },
           scales: {
-            x: { ticks: { color: 'white' } },
-            y: { ticks: { color: 'white' }, beginAtZero: true }
+            x: { 
+              ticks: { 
+                color: '#ccc',
+                font: { size: 10 }
+              },
+              grid: {
+                color: 'rgba(255,255,255,0.1)',
+                borderDash: [5, 5]
+              }
+            },
+            y: { 
+              ticks: { 
+                color: '#ccc',
+                font: { size: 10 }
+              },
+              grid: {
+                color: 'rgba(255,255,255,0.1)',
+                borderDash: [5, 5]
+              },
+              beginAtZero: true
+            }
+          },
+          elements: {
+            line: {
+              tension: 0.4,
+              borderWidth: 3,
+              borderCapStyle: 'round',
+              borderJoinStyle: 'round'
+            },
+            point: {
+              radius: 5,
+              hoverRadius: 8,
+              borderWidth: 2,
+              backgroundColor: 'rgba(255,255,255,0.8)',
+              borderColor: '#3b82f6',
+              hoverBackgroundColor: '#3b82f6',
+              hoverBorderColor: 'white'
+            }
+          },
+          interaction: {
+            intersect: false,
+            mode: 'index'
+          },
+          animation: {
+            duration: 2000,
+            easing: 'easeOutQuart'
           }
         },
         plugins: [ChartDataLabels]
       });
 
+      // Attach annotation/click handlers!
+      attachCanvasClickHandler(tempChartObj, humChartObj, allTimestamps);
+      attachCanvasClickHandler(humChartObj, tempChartObj, allTimestamps);
+
+      // Beautiful SLA Doughnut Chart
       new Chart(document.getElementById('slaPieChart'), {
         type: 'doughnut',
         data: {
           labels: ['Compliant', 'Breached'],
           datasets: [{
             data: [compliant, slaBreached],
-            backgroundColor: ['#22c55e', '#ef4444'],
-            borderWidth: 1
+            backgroundColor: [
+              'rgba(0, 255, 157, 0.8)',  // Bright green
+              'rgba(255, 71, 87, 0.8)'   // Bright red
+            ],
+            borderColor: [
+              'rgba(0, 255, 157, 1)',
+              'rgba(255, 71, 87, 1)'
+            ],
+            borderWidth: 2,
+            cutout: '75%',
+            borderRadius: 8,
+            hoverOffset: 8
           }]
         },
         options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          rotation: -90,
+          circumference: 270,
           plugins: {
-            legend: {
-              labels: { color: 'white', font: { size: 14 } }
-            },
-            datalabels: {
-              color: '#fff',
-              formatter: value => value + ' readings'
+            legend: { display: false },
+            tooltip: { enabled: false },
+            datalabels: { display: false }
+          },
+          elements: {
+            arc: {
+              borderWidth: 0,
+              borderJoinStyle: 'round'
             }
+          },
+          animation: {
+            animateRotate: true,
+            animateScale: true,
+            duration: 2000,
+            easing: 'easeOutQuart'
           }
         },
-        plugins: [ChartDataLabels]
+        plugins: [{
+          id: 'gradientBackground',
+          beforeDraw: function(chart) {
+            const ctx = chart.ctx;
+            const chartArea = chart.chartArea;
+            
+            // Create gradient
+            const gradient = ctx.createRadialGradient(
+              chartArea.left + chartArea.width / 2,
+              chartArea.top + chartArea.height / 2,
+              0,
+              chartArea.left + chartArea.width / 2,
+              chartArea.top + chartArea.height / 2,
+              Math.max(chartArea.width, chartArea.height) / 2
+            );
+            
+            gradient.addColorStop(0, 'rgba(0, 255, 157, 0.1)');
+            gradient.addColorStop(1, 'rgba(0, 255, 157, 0.01)');
+            
+            ctx.save();
+            ctx.fillStyle = gradient;
+            ctx.fillRect(chartArea.left, chartArea.top, chartArea.width, chartArea.height);
+            ctx.restore();
+          }
+        }]
       });
     }
 
-    // ✅ CSV Export Functions
+    // CSV Export Functions
     function downloadCSV(data, filename) {
       const csvContent = data.map(row => row.join(",")).join("\n");
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -221,6 +579,54 @@
     }
 
     fetchData();
-  </script>
+</script>
+<!-- Custom Modal for Place Input -->
+<div id="place-modal" style="display:none; position:fixed; left:0; top:0; width:100vw; height:100vh; z-index:1000; background:rgba(0,0,0,0.4);">
+  <div style="
+      position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+      background:rgba(30,36,60,0.7);
+      box-shadow: 0 4px 24px 0 rgba(0,0,0,0.5);
+      border-radius: 24px;
+      padding:36px 32px 28px 32px; min-width:320px; max-width:90vw;
+      backdrop-filter: blur(16px) saturate(140%);
+      border: 1px solid rgba(255,255,255,0.11);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    " id="place-modal-box">
+    <div style="font-size:1.2rem; font-weight:600; letter-spacing:.02em; margin-bottom:10px;">
+      Add / Edit Place Name
+    </div>
+    <input id="place-input" type="text" placeholder="Enter location..." style="
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.18);
+        padding: 12px;
+        background: rgba(255,255,255,0.13);
+        color: #fff; font-size:1rem; outline: none;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+        margin-bottom: 8px;
+      ">
+    <div style="display: flex; gap: 10px; margin-top:8px; justify-content:flex-end;">
+      <button id="place-cancel" style="
+          padding: 8px 20px; border:none;
+          border-radius: 8px; background:rgba(255,255,255,0.10); color:#fff; cursor:pointer;
+          font-size:1rem;
+          transition: background 0.2s;
+      ">Cancel</button>
+      <button id="place-ok" style="
+          padding: 8px 24px; border:none;
+          border-radius: 8px; background:linear-gradient(90deg,#24c6dc,#5433ff); color:#fff; cursor:pointer;
+          font-size:1rem;
+          font-weight: 600;
+          transition: background 0.2s;
+      ">Save</button>
+    </div>
+  </div>
+</div>
+
+
+
 </body>
+
 </html>
