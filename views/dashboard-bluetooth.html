@@ -109,6 +109,36 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
   isGuest = user.type === 'guest';
 });
 
+function attachCanvasClickHandler(chart, labels) {
+  const canvas = chart.canvas;
+  canvas.onclick = async function(evt) {
+    if (isGuest) {
+      alert("Guest users cannot edit places.");
+      return;
+    }
+    const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+    if (!points.length) return;
+    const pointIndex = points[0].index;
+    const ts = labels[pointIndex];
+    const existingPlace = placeLabels[ts] || '';
+    showPlaceModal(existingPlace, async (newPlace) => {
+      if (newPlace !== null && newPlace.trim() !== "") {
+        placeLabels[ts] = newPlace;
+        const readingId = pointIdMap[ts];
+        if (readingId) {
+          await fetch(`/api/data/bluetooth/${readingId}/place`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ place_name: newPlace })
+          });
+          await fetchData();
+        }
+      }
+    });
+  }
+}
+
+
     function showPlaceModal(currentPlace, onOk) {
       const modal = document.getElementById('place-modal');
       const input = document.getElementById('place-input');
@@ -142,35 +172,6 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
         }
       };
     }
-   function attachCanvasClickHandler(chart, otherChart, labels) {
-  const canvas = chart.canvas;
-  canvas.onclick = async function(evt) {
-    // Block for guests!
-    if (isGuest) {
-      alert("Guest users cannot edit places.");
-      return;
-    }
-    const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
-    if (!points.length) return;
-    const pointIndex = points[0].index;
-    const ts = labels[pointIndex];
-    const existingPlace = placeLabels[ts] || '';
-    showPlaceModal(existingPlace, async (newPlace) => {
-      if (newPlace !== null && newPlace.trim() !== "") {
-        placeLabels[ts] = newPlace;
-        const readingId = pointIdMap[ts];
-        if (readingId) {
-          await fetch(`/api/data/wifi/${readingId}/place`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ place_name: newPlace })
-          });
-          await fetchData();
-        }
-      }
-    });
-  }
-}
 
 
     function downloadCSV(data, filename) {
@@ -381,6 +382,7 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
       colorIndex++;
     }
 
+
     // Update UI
     document.getElementById("latest-temp").innerText = `${latestTemp || '--'} °C`;
     document.getElementById("latest-hum").innerText = `${latestHum || '--'} %`;
@@ -428,7 +430,6 @@ tempChartObj = new Chart(document.getElementById('tempChart').getContext('2d'), 
   plugins: [ChartDataLabels]
 });
 attachCanvasClickHandler(tempChartObj, allTimestamps);
-
 // Humidity Chart
 humChartObj = new Chart(document.getElementById('humChart').getContext('2d'), {
   type: 'line',

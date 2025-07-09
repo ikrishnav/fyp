@@ -238,7 +238,7 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
     }
 
     // PLACE: Chart click handler
-    function attachCanvasClickHandler(chart, otherChart, labels) {
+    function attachCanvasClickHandler(chart, labels) {
   const canvas = chart.canvas;
   canvas.onclick = async function(evt) {
     // Block for guests!
