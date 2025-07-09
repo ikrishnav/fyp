@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Control Panel</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      background: linear-gradient(120deg, #181b29 0%, #17152e 100%);
+      min-height: 100vh;
+    }
+    .admin-card {
+      background: rgba(34, 41, 71, 0.78);
+      box-shadow: 0 8px 40px 8px #24c6dc2e, 0 2px 18px 0 rgba(0,0,0,0.19);
+      border-radius: 32px;
+      padding: 54px 40px 44px 40px;
+      max-width: 540px;
+      margin: 70px auto 0 auto;
+      animation: fadeInCard 1s cubic-bezier(.6,-0.28,.74,.05);
+      color: #f4f6fa;
+    }
+    .admin-title {
+      font-size: 2.2rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, #24c6dc 25%, #a384fe 85%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      letter-spacing: .01em;
+      margin-bottom: 18px;
+      justify-content: center;
+    }
+    .admin-title .icon-shield {
+      font-size: 2.7rem;
+      color: #24c6dc;
+      filter: drop-shadow(0 3px 12px #25e6e660);
+    }
+    .admin-desc {
+      color: #c6e6fb;
+      opacity: 0.88;
+      margin-bottom: 34px;
+      font-size: 1.08rem;
+      text-align: center;
+      font-weight: 500;
+    }
+    .admin-buttons a {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      border-radius: 22px;
+      border: none;
+      margin-bottom: 24px;
+      padding: 22px 28px;
+      width: 100%;
+      background: linear-gradient(90deg, #24c6dc 10%, #6366ff 100%);
+      color: #fff;
+      box-shadow: 0 8px 28px 0 #24c6dc23;
+      transition: background 0.19s, box-shadow 0.15s, transform 0.12s;
+      position: relative;
+      z-index: 1;
+      text-decoration: none;
+      justify-content: flex-start;
+    }
+    .admin-buttons a:last-child {
+      background: linear-gradient(90deg, #ff4d6d 0%, #7045d3 100%);
+    }
+    .admin-buttons a:hover {
+      background: linear-gradient(100deg, #a384fe 0%, #24c6dc 100%);
+      transform: scale(1.035);
+      box-shadow: 0 16px 40px 0 #a384fe24;
+    }
+    .admin-buttons .icon {
+      font-size: 1.5em;
+      margin-right: 8px;
+    }
+    @media (max-width: 700px) {
+      .admin-card { padding: 9vw 2vw; }
+      .admin-buttons a { padding: 14px 6vw; font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-card">
+    <div class="admin-title">
+      <span class="icon-shield">🛡️</span>
+      Admin Control Panel
+    </div>
+    <div class="admin-desc">
+      Choose what you want to manage:
+    </div>
+    <div class="admin-buttons">
+      <a href="/dashboard/admin/readings">
+        <span class="icon">📊</span> Modify Sensor Readings
+      </a>
+      <a href="/dashboard/admin/users">
+        <span class="icon">👤</span> Add / Remove Users
+      </a>
+    </div>
+  </div>
+</body>
+</html>

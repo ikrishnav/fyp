@@ -256,7 +256,7 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
         placeLabels[ts] = newPlace;
         const readingId = pointIdMap[ts];
         if (readingId) {
-          await fetch(`/api/data/wifi/${readingId}/place`, {
+          await fetch(`/api/data/sigfox1/${readingId}/place`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ place_name: newPlace })

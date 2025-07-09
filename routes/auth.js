@@ -45,9 +45,48 @@ router.post('/guest-login', async (req, res) => {
 
 
 // --- Serve login page, with error if needed ---
-router.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, '../views/login.html'));
+router.post('/login', (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ success: false, message: 'All fields are required.' });
+  }
+
+  const sql = 'SELECT * FROM users WHERE email = ?';
+  db.query(sql, [email], async (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error.' });
+    if (results.length === 0) {
+      return res.status(401).json({ success: false, message: 'Invalid username or password.' });
+    }
+
+    const user = results[0];
+
+    // 1. Check active status
+    if (!user.is_active) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account is deactivated. Please contact the administrator.'
+      });
+    }
+
+    // 2. Password check (replace with bcrypt if needed)
+    if (password !== user.password) {
+      return res.status(401).json({ success: false, message: 'Invalid username or password.' });
+    }
+
+    // 3. Set session user (with isAdmin flag if you wish)
+    const isAdmin = user.email === 'krishnavijayan189@gmail.com';
+    req.session.user = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      isAdmin: isAdmin
+    };
+
+    res.json({ success: true, role: user.role, isAdmin });
+  });
 });
+
 
 // --- For frontend JS: session user info ---
 router.get('/userinfo', (req, res) => {

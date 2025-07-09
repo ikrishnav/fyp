@@ -46,6 +46,44 @@ router.get('/api/breaches/sigfox1', (req, res) => {
     res.json(results);
   });
 });
+router.post('/api/sigfox1', (req, res) => {
+  let { device_id, data } = req.body;  // device_id and data (e.g. "4E35")
+  if (!device_id || !data || data.length !== 4) {
+    return res.status(400).json({ error: "Missing or invalid fields" });
+  }
+
+  // Convert hex to decimal
+  const tempHex = data.substring(0, 2);
+  const humHex = data.substring(2, 4);
+  const temperature = parseInt(tempHex, 16); // e.g. "4E" => 78
+  const humidity = parseInt(humHex, 16);     // e.g. "35" => 53
+
+  const timestamp = new Date();
+  const created_date = new Date();
+
+  // Find device numeric id
+  db.query('SELECT id FROM devices WHERE device_id = ?', [device_id], (err, rows) => {
+    if (err || rows.length === 0) {
+      return res.status(404).json({ error: "Device not found" });
+    }
+    const devId = rows[0].id;
+
+    // Insert into sensor_data table
+    db.query(
+      `INSERT INTO sensor_data 
+        (device_id, temperature, humidity, timestamp, created_date) 
+       VALUES (?, ?, ?, ?, ?)`,
+      [devId, temperature, humidity, timestamp, created_date],
+      (err, result) => {
+        if (err) {
+          console.error("Insert error:", err);
+          return res.status(500).json({ error: "Insert failed" });
+        }
+        res.json({ success: true, id: result.insertId });
+      }
+    );
+  });
+});
 
 // --- PATCH place name for a reading ---
 router.patch('/api/data/sigfox1/:id/place', (req, res) => {

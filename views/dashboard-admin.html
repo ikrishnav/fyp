@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="/admin.css">
-  
 </head>
 <body>
   <div class="main-header">
@@ -20,120 +19,239 @@
 
   <div class="container py-4">
     <div class="alert alert-warning text-center" id="sla-alert" style="display:none;"></div>
-
     <div id="sections-container"></div>
   </div>
 
-  <script>
-    const SOURCES = ['sigfox1', 'sigfox2', 'wifi', 'bluetooth'];
-
-    const labels = {
-      sigfox1: '📡 Sigfox 1',
-      sigfox2: '📡 Sigfox 2',
-      wifi: '📶 Wi-Fi',
-      bluetooth: '🔵 Bluetooth'
-    };
-
-    function createSection(type, label) {
-      return `
-        <div class="card">
-          <h5 class="card-title">${label} ${type === 'data' ? 'Sensor Readings' : 'SLA Breaches'}</h5>
-          <div class="table-responsive">
-            <table class="table table-dark table-sm">
-              <thead>
-                <tr><th>Device ID</th><th>Timestamp</th><th>Temperature (°C)</th><th>Humidity (%)</th><th>Status</th></tr>
-              </thead>
-              <tbody id="${type}-${label.toLowerCase().replace(/[^a-z0-9]/g, '')}"></tbody>
-            </table>
+  <!-- Edit Modal -->
+  <div class="modal" tabindex="-1" id="editModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form id="editForm">
+          <div class="modal-header">
+            <h5 class="modal-title">Edit Reading</h5>
+            <button type="button" class="btn-close" onclick="closeEditModal()"></button>
           </div>
-          <button class="btn btn-outline-light" onclick="exportCSV('${type}-${label.toLowerCase().replace(/[^a-z0-9]/g, '')}')">📥 Export CSV</button>
-        </div>
-      `;
-    }
-
-    function setupSections() {
-      const container = document.getElementById('sections-container');
-      SOURCES.forEach(src => {
-        container.innerHTML += createSection('data', labels[src]);
-        container.innerHTML += createSection('breach', labels[src]);
-      });
-    }
-
-    function exportCSV(tableId) {
-      const rows = Array.from(document.querySelectorAll(`#${tableId} tr`)).map(tr =>
-        Array.from(tr.children).map(td => td.innerText)
-      );
-      const csv = rows.map(r => r.join(",")).join("\n");
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `${tableId}.csv`;
-      link.click();
-    }
-
-    function getStatusBadge(status) {
-      if (status === 'OK') {
-        return `<span class="status-badge status-ok">✅ ${status}</span>`;
-      } else if (status.includes('WARNING')) {
-        return `<span class="status-badge status-warning">⚠️ ${status}</span>`;
-      } else {
-        return `<span class="status-badge status-danger">❌ ${status}</span>`;
-      }
-    }
-
-    async function fetchAndDisplay() {
-      const dataRes = await fetch('/api/data/admin');
-      const breachRes = await fetch('/api/breaches/admin');
-
-      const data = await dataRes.json();
-      const breaches = await breachRes.json();
-
-      let totalBreaches = 0;
-
-      data.forEach(entry => {
-        const id = `data-${labels[entry.source].toLowerCase().replace(/[^a-z0-9]/g, '')}`;
-        const row = `
-          <tr>
-            <td><strong>${entry.device_id}</strong></td>
-            <td>${new Date(entry.timestamp).toLocaleString()}</td>
-            <td><span style="color: var(--primary-blue); font-weight: 500;">${entry.temperature}°C</span></td>
-            <td><span style="color: var(--success-green); font-weight: 500;">${entry.humidity}%</span></td>
-            <td>${getStatusBadge('OK')}</td>
-          </tr>`;
-        document.getElementById(id).innerHTML += row;
-      });
-
-      breaches.forEach(entry => {
-        const id = `breach-${labels[entry.source].toLowerCase().replace(/[^a-z0-9]/g, '')}`;
-        const row = `
-          <tr>
-            <td><strong>${entry.device_id}</strong></td>
-            <td>${new Date(entry.timestamp).toLocaleString()}</td>
-            <td><span style="color: var(--danger-red); font-weight: 500;">${entry.temperature}°C</span></td>
-            <td><span style="color: var(--warning-orange); font-weight: 500;">${entry.humidity}%</span></td>
-            <td>${getStatusBadge(entry.status)}</td>
-          </tr>`;
-        document.getElementById(id).innerHTML += row;
-        totalBreaches++;
-      });
-
-      if (totalBreaches > 0) {
-        const alertBox = document.getElementById("sla-alert");
-        alertBox.style.display = "block";
-        alertBox.innerHTML = `
-          <div class="d-flex align-items-center justify-content-center">
-            <span style="font-size: 1.5rem; margin-right: 1rem;">🚨</span>
-            <div>
-              <strong>SLA BREACH DETECTED</strong><br>
-              ${totalBreaches} anomalies detected across all sources
+          <div class="modal-body">
+            <input type="hidden" id="edit-id">
+            <div class="mb-3">
+              <label for="edit-temp" class="form-label">Temperature (°C)</label>
+              <input type="number" step="0.01" class="form-control" id="edit-temp" required>
+            </div>
+            <div class="mb-3">
+              <label for="edit-hum" class="form-label">Humidity (%)</label>
+              <input type="number" step="0.01" class="form-control" id="edit-hum" required>
+            </div>
+            <div class="mb-3">
+              <label for="edit-place" class="form-label">Place/Location</label>
+              <input type="text" class="form-control" id="edit-place">
             </div>
           </div>
-        `;
-      }
-    }
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
-    setupSections();
-    fetchAndDisplay();
-  </script>
+<script>
+const SOURCES = ['sigfox1', 'sigfox2', 'wifi', 'bluetooth'];
+const labels = {
+  sigfox1: '📡 Sigfox 1',
+  sigfox2: '📡 Sigfox 2',
+  wifi: '📶 Wi-Fi',
+  bluetooth: '🔵 Bluetooth'
+};
+function createSection(type, label) {
+  return `
+    <div class="card my-4">
+      <h5 class="card-title p-3">${label} ${type === 'data' ? 'Sensor Readings' : 'SLA Breaches'}</h5>
+      <div class="table-responsive">
+        <table class="table table-dark table-sm align-middle">
+          <thead>
+            <tr>
+              <th>Device ID</th>
+              <th>Timestamp</th>
+              <th>Temperature (°C)</th>
+              <th>Humidity (%)</th>
+              <th>Place</th>
+              <th>Status</th>
+              ${type === 'data' ? '<th>Action</th>' : ''}
+            </tr>
+          </thead>
+          <tbody id="${type}-${label.toLowerCase().replace(/[^a-z0-9]/g, '')}"></tbody>
+        </table>
+      </div>
+      <button class="btn btn-outline-light" onclick="exportCSV('${type}-${label.toLowerCase().replace(/[^a-z0-9]/g, '')}')">📥 Export CSV</button>
+    </div>
+  `;
+}
+function setupSections() {
+  const container = document.getElementById('sections-container');
+  SOURCES.forEach(src => {
+    container.innerHTML += createSection('data', labels[src]);
+    container.innerHTML += createSection('breach', labels[src]);
+  });
+}
+function exportCSV(tableId) {
+  const rows = Array.from(document.querySelectorAll(`#${tableId} tr`)).map(tr =>
+    Array.from(tr.children).map(td => td.innerText)
+  );
+  const csv = rows.map(r => r.join(",")).join("\n");
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `${tableId}.csv`;
+  link.click();
+}
+function getStatusBadge(status) {
+  if (status === 'OK') {
+    return `<span class="status-badge status-ok">✅ ${status}</span>`;
+  } else if (status && status.includes('WARNING')) {
+    return `<span class="status-badge status-warning">⚠️ ${status}</span>`;
+  } else {
+    return `<span class="status-badge status-danger">❌ ${status || ''}</span>`;
+  }
+}
+
+let latestTableData = {}; // Store reading info for editing
+
+async function fetchAndDisplay() {
+  const dataRes = await fetch('/api/data/admin');
+  const breachRes = await fetch('/api/breaches/admin');
+  const data = await dataRes.json();
+  const breaches = await breachRes.json();
+  let totalBreaches = 0;
+  latestTableData = {};
+
+  // Data readings
+  data.forEach(entry => {
+    const id = `data-${labels[entry.source].toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+    const rowId = `row-${entry.id}`;
+    latestTableData[entry.id] = entry;
+    const row = `
+      <tr id="${rowId}">
+        <td><strong>${entry.device_id}</strong></td>
+        <td>${new Date(entry.timestamp).toLocaleString()}</td>
+        <td>${entry.temperature}</td>
+        <td>${entry.humidity}</td>
+        <td>${entry.place_name || ''}</td>
+        <td>${getStatusBadge('OK')}</td>
+        <td>
+          <button class="btn btn-sm btn-warning" onclick="showEditModal('${entry.id}')">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteReading('${entry.id}')">Delete</button>
+        </td>
+      </tr>
+    `;
+    document.getElementById(id).innerHTML += row;
+  });
+
+  // SLA Breaches
+  breaches.forEach(entry => {
+    const id = `breach-${labels[entry.source].toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+    const row = `
+      <tr>
+        <td><strong>${entry.device_id}</strong></td>
+        <td>${new Date(entry.timestamp).toLocaleString()}</td>
+        <td>${entry.temperature}</td>
+        <td>${entry.humidity}</td>
+        <td>${entry.place_name || ''}</td>
+        <td>${getStatusBadge(entry.status)}</td>
+      </tr>
+    `;
+    document.getElementById(id).innerHTML += row;
+    totalBreaches++;
+  });
+
+  if (totalBreaches > 0) {
+    const alertBox = document.getElementById("sla-alert");
+    alertBox.style.display = "block";
+    alertBox.innerHTML = `
+      <div class="d-flex align-items-center justify-content-center">
+        <span style="font-size: 1.5rem; margin-right: 1rem;">🚨</span>
+        <div>
+          <strong>SLA BREACH DETECTED</strong><br>
+          ${totalBreaches} anomalies detected across all sources
+        </div>
+      </div>
+    `;
+  }
+}
+
+// Delete Reading
+function deleteReading(id) {
+  if(confirm('Delete this reading?')) {
+    fetch(`/dashboard/admin/readings/${id}/delete`, { method: 'POST' })
+      .then(r => r.json()).then(res => {
+        if(res.success) document.getElementById(`row-${id}`).remove();
+        else alert('Delete failed');
+      });
+  }
+}
+
+// Show Edit Modal
+function showEditModal(id) {
+  const entry = latestTableData[id];
+  document.getElementById('edit-id').value = entry.id;
+  document.getElementById('edit-temp').value = entry.temperature;
+  document.getElementById('edit-hum').value = entry.humidity;
+  document.getElementById('edit-place').value = entry.place_name || '';
+  document.getElementById('editModal').style.display = "block";
+  document.body.classList.add('modal-open');
+}
+
+// Hide Edit Modal
+function closeEditModal() {
+  document.getElementById('editModal').style.display = "none";
+  document.body.classList.remove('modal-open');
+}
+
+// Save Edit
+document.addEventListener("DOMContentLoaded", function() {
+  setupSections();
+  fetchAndDisplay();
+
+  document.getElementById('editForm').onsubmit = function(e) {
+    e.preventDefault();
+    const id = document.getElementById('edit-id').value;
+    const temperature = document.getElementById('edit-temp').value;
+    const humidity = document.getElementById('edit-hum').value;
+    const place_name = document.getElementById('edit-place').value;
+    fetch(`/dashboard/admin/readings/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ temperature, humidity, place_name })
+    }).then(r => r.json()).then(res => {
+      if(res.success) {
+        closeEditModal();
+        location.reload();
+      } else {
+        alert('Edit failed');
+      }
+    });
+  };
+});
+</script>
+
+<style>
+/* Basic Modal Styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 10000;
+  left: 0; top: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.5);
+  align-items: center; justify-content: center;
+}
+.modal-open .modal { display: flex !important; }
+.modal .modal-dialog {
+  background: #232946;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px 0 rgba(0,0,0,0.18);
+  max-width: 400px; width: 100%;
+}
+</style>
+
 </body>
 </html>
