@@ -87,7 +87,9 @@ router.post('/login', (req, res) => {
   });
 });
 
-
+router.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/login.html'));
+});
 // --- For frontend JS: session user info ---
 router.get('/userinfo', (req, res) => {
   const user = req.session.user || { type: 'guest' };
