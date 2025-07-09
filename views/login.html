@@ -4,64 +4,230 @@
   <meta charset="UTF-8">
   <title>Login - IoT Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Fonts & Bootstrap -->
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Poppins:wght@800&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="/style.css" rel="stylesheet">
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+  <style>
+    body.login-body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #151A28 60%, #232A47 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Nunito', sans-serif;
+    }
+    .center-page-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      min-height: 100vh;
+      justify-content: center;
+    }
+    .main-logo-title {
+      font-family: 'Poppins', sans-serif;
+      font-size: 2.7rem;
+      font-weight: 800;
+      letter-spacing: .03em;
+      color: #e7eaff;
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-shadow: 0 2px 16px #21235a33;
+      text-align: center;
+    }
+    .main-logo-title .icon {
+      font-size: 2.5rem;
+      vertical-align: middle;
+      filter: drop-shadow(0 2px 4px #0005);
+    }
+    .auth-card {
+      background: rgba(23,25,40,0.95);
+      backdrop-filter: blur(6px);
+      border-radius: 24px;
+      padding: 40px 36px 32px 36px;
+      box-shadow: 0 10px 36px 0 rgba(36,52,122,0.30);
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    form {
+      width: 100%;
+    }
+    label.form-label {
+      color: #c3d7ff;
+      font-weight: 700;
+      letter-spacing: .03em;
+    }
+    .form-control {
+      background: rgba(200,220,255,0.11);
+      border-radius: 14px;
+      border: 1.5px solid #273057;
+      font-size: 1.09rem;
+      color: #e2eaff;
+      padding: 0.7rem 1rem;
+      box-shadow: 0 1px 8px #0002;
+      margin-bottom: 6px;
+      outline: none;
+      transition: border .2s, box-shadow .2s;
+    }
+    .form-control:focus {
+      border: 2px solid #24c6dc;
+      box-shadow: 0 0 8px #24c6dc40;
+      background: rgba(48,54,94,0.20);
+      color: #fff;
+    }
+    .btn-gradient, .btn-guest-gradient {
+      width: 100%;
+      padding: 0.8rem 0;
+      font-size: 1.23rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 14px;
+      margin-top: 8px;
+      background: linear-gradient(90deg, #24c6dc 0%, #5433ff 100%);
+      color: #fff;
+      box-shadow: 0 3px 14px 0 rgba(36, 198, 220, 0.17);
+      transition: background 0.18s, box-shadow 0.18s, transform 0.15s;
+      cursor: pointer;
+      text-align: center;
+      letter-spacing: .02em;
+    }
+    .btn-gradient:hover, .btn-guest-gradient:hover {
+      background: linear-gradient(90deg, #5433ff 0%, #24c6dc 100%);
+      transform: translateY(-2px) scale(1.035);
+      box-shadow: 0 4px 18px 0 rgba(84,51,255,0.19);
+    }
+    .btn-guest-gradient {
+      background: linear-gradient(90deg, #a384fe 0%, #24c6dc 100%);
+    }
+    .btn-guest-gradient:hover {
+      background: linear-gradient(90deg, #24c6dc 0%, #a384fe 100%);
+    }
+    .divider-or {
+      text-align: center;
+      margin: 32px 0 18px;
+      font-size: 1.13rem;
+      color: #87a7c7;
+      font-weight: 600;
+      letter-spacing: .06em;
+      position: relative;
+      padding-top: 18px;
+      width: 100%;
+    }
+    .divider-or:before,
+    .divider-or:after {
+      content: "";
+      position: absolute;
+      top: 0;
+      width: 35%;
+      height: 1.5px;
+      background: linear-gradient(90deg, #24c6dc40, #a384fe50);
+    }
+    .divider-or:before { left: 0; }
+    .divider-or:after { right: 0; }
+    .link-light {
+      color: #96e6fe !important;
+      text-shadow: 0 1px 6px #24c6dc21;
+      font-size: 0.99rem;
+      font-weight: 500;
+      transition: color 0.14s;
+    }
+    .link-light:hover {
+      color: #e9cbff !important;
+      text-decoration: underline;
+    }
+    .g-recaptcha {
+      display: flex;
+      justify-content: center;
+      margin: 0 auto;
+      width: fit-content;
+    }
+    #captcha-error, #error-message {
+      text-align: center;
+      font-size: 1.02rem;
+      min-height: 22px;
+      color: #ff99a5;
+    }
+    ::placeholder {
+      color: #b4bfd7;
+      opacity: 1;
+    }
+  </style>
 </head>
 <body class="login-body">
-  <div class="auth-container">
+  <div class="center-page-col">
+    <div class="main-logo-title">
+      <span class="icon">🛰️</span>
+      IoT Dashboard Login
+    </div>
     <div class="auth-card">
-      <h2 class="auth-title">🔐 IoT Dashboard Login</h2>
-      <form id="login-form">
+      <form id="login-form" autocomplete="on" style="width:100%;">
         <div class="mb-3">
           <label for="email" class="form-label">Email</label>
-          <input type="email" class="form-control" name="email" required>
+          <input type="email" class="form-control" name="email" required autocomplete="username" placeholder="Enter your email">
         </div>
         <div class="mb-3">
           <label for="password" class="form-label">Password</label>
-          <input type="password" class="form-control" name="password" required>
+          <input type="password" class="form-control" name="password" required autocomplete="current-password" placeholder="Enter your password">
         </div>
-        <div id="error-message" class="text-danger mb-2"></div>
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <a href="/auth/forgot" class="text-decoration-none">Forgot Password?</a>
+        <div id="error-message" class="mb-2"></div>
+        <div class="d-flex justify-content-center align-items-center mb-2">
+          <a href="/auth/forgot" class="text-decoration-none link-light">Forgot Password?</a>
         </div>
-        <div class="d-grid">
-          <button type="submit" class="btn btn-primary">Login</button>
+        <div class="d-grid mt-2">
+          <button type="submit" class="btn-gradient">Login</button>
         </div>
+      </form>
+      <div class="divider-or">Or continue as guest</div>
+      <form id="guest-login-form" action="/auth/guest-login" method="POST">
+        <div class="g-recaptcha" data-sitekey="6Le_LH0rAAAAAJtk6I5w3zbt3axDRzmGIqw06CAM" data-theme="dark"></div>
+        <button type="submit" class="btn-guest-gradient mt-3">Login as Guest</button>
+        <div id="captcha-error" class="mt-2" style="display:none;">Captcha incorrect!</div>
       </form>
     </div>
   </div>
-
   <script>
+    // Prevent submit if reCAPTCHA is not complete
+    document.getElementById('guest-login-form').addEventListener('submit', function(e) {
+      var response = grecaptcha.getResponse();
+      if (!response) {
+        e.preventDefault();
+        document.getElementById('captcha-error').innerText = "Please complete the reCAPTCHA!";
+        document.getElementById('captcha-error').style.display = 'block';
+        return false;
+      }
+    });
+    // Show error from URL if captcha failed
+    if (window.location.search.includes('error=captcha')) {
+      document.getElementById('captcha-error').innerText = "Captcha incorrect!";
+      document.getElementById('captcha-error').style.display = 'block';
+    }
+    // Login form AJAX (no changes needed)
     document.addEventListener('DOMContentLoaded', function () {
       const loginForm = document.getElementById('login-form');
-
       loginForm.addEventListener('submit', async function(e) {
         e.preventDefault();
-
         const email = e.target.email.value.trim();
         const password = e.target.password.value;
-
         if (!email || !password) {
           document.getElementById('error-message').textContent = "Please fill in all fields.";
           return;
         }
-
         const response = await fetch('/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
         });
-
         const result = await response.json();
         if (result.success) {
-          const dashboards = {
-            wifi: '/views/dashboard-wifi.html',
-            bluetooth: '/views/dashboard-bluetooth.html',
-            sigfox1: '/views/dashboard-sigfox1.html',
-            sigfox2: '/views/dashboard-sigfox2.html',
-            admin: '/views/dashboard-admin.html'
-          };
-          window.location.href = dashboards[result.role] || '/index.html';
+          window.location.href = '/dashboard-selector';
         } else {
           document.getElementById('error-message').textContent = result.message;
         }

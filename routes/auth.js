@@ -12,12 +12,50 @@ const db = mysql.createConnection({
   database: 'iot_dashboard'
 });
 
+// --- Guest login route ---
+const axios = require('axios');
+
+router.post('/guest-login', async (req, res) => {
+    const recaptchaToken = req.body['g-recaptcha-response'];
+    if (!recaptchaToken) {
+        return res.redirect('/auth/login?error=captcha');
+    }
+    try {
+        const secret = '6Le_LH0rAAAAAL2LMkNVzOHsZLTFCLY1LGFjGZ3l';
+        const verifyRes = await axios.post(
+            'https://www.google.com/recaptcha/api/siteverify',
+            null,
+            {
+                params: {
+                    secret: secret,
+                    response: recaptchaToken
+                }
+            }
+        );
+        if (!verifyRes.data.success) {
+            return res.redirect('/auth/login?error=captcha');
+        }
+        req.session.user = { type: 'guest' };
+        res.redirect('/dashboard-selector');
+    } catch (err) {
+        console.error('reCAPTCHA error:', err.message);
+        return res.redirect('/auth/login?error=captcha');
+    }
+});
 
 
+// --- Serve login page, with error if needed ---
 router.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/login.html'));
 });
 
+// --- For frontend JS: session user info ---
+router.get('/userinfo', (req, res) => {
+  const user = req.session.user || { type: 'guest' };
+  // If not present, default isAdmin to false
+  user.isAdmin = user.isAdmin || false;
+  res.json(user);
+});
 
 router.post('/login', (req, res) => {
   const { email, password } = req.body;
@@ -34,19 +72,21 @@ router.post('/login', (req, res) => {
     }
 
     const user = results[0];
-
     if (password !== user.password) {
       return res.status(401).json({ success: false, message: 'Invalid username or password.' });
     }
 
-
+    // --- ADDED: Check for admin ---
+    const isAdmin = user.email === 'krishnavijayan189@gmail.com';
     req.session.user = {
       id: user.id,
       email: user.email,
-      role: user.role
+      role: user.role,
+      isAdmin: isAdmin   // Add isAdmin flag to session
     };
 
-    res.json({ success: true, role: user.role });
+    // --- ADDED: Return isAdmin in JSON
+    res.json({ success: true, role: user.role, isAdmin });
   });
 });
 
@@ -54,7 +94,6 @@ router.post('/login', (req, res) => {
 router.get('/forgot', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/forgot.html'));
 });
-
 
 router.post('/send-otp', (req, res) => {
   const { email } = req.body;
@@ -84,7 +123,6 @@ router.post('/send-otp', (req, res) => {
     });
   });
 });
-
 
 router.post('/reset-password', (req, res) => {
   const { email, otp, new_password } = req.body;

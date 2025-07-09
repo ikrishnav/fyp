@@ -151,6 +151,11 @@
     const tempCSV = [['Device ID', 'Timestamp', 'Temperature']];
     const humCSV = [['Device ID', 'Timestamp', 'Humidity']];
     const breachCSV = [['Device ID', 'Timestamp', 'Temperature', 'Humidity', 'Status']];
+let isGuest = false;
+// Check guest user at page load
+fetch('/auth/userinfo').then(res => res.json()).then(user => {
+  isGuest = user.type === 'guest';
+});
 
     function downloadCSV(data, filename) {
       const csv = data.map(row => row.join(",")).join("\n");
@@ -436,6 +441,21 @@
     }
     fetchData();
   </script>
+  <script>
+fetch('/auth/userinfo').then(res => res.json()).then(user => {
+  if(user.type === 'guest') {
+    document.querySelectorAll('input, select, textarea, button').forEach(el => {
+      if (
+        el.classList.contains('btn-export') ||
+        el.closest('.table-responsive')
+      ) {
+        el.disabled = true;
+      }
+    });
+    
+  }
+});
+</script>
 </body>
 
 </html>

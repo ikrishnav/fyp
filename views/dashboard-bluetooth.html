@@ -103,6 +103,11 @@
     let slaPieChartInstance = null;
     const placeLabels = {}; // Holds timestamp → place name
     const pointIdMap = {};  // Holds timestamp → sensor_data.id
+let isGuest = false;
+// Check guest user at page load
+fetch('/auth/userinfo').then(res => res.json()).then(user => {
+  isGuest = user.type === 'guest';
+});
 
     function showPlaceModal(currentPlace, onOk) {
       const modal = document.getElementById('place-modal');
@@ -137,31 +142,36 @@
         }
       };
     }
-    // Chart click handler for annotation (Chart.js v3+)
-    function attachCanvasClickHandler(chart, labels) {
-      const canvas = chart.canvas;
-      canvas.onclick = async function(evt) {
-        const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
-        if (!points.length) return;
-        const pointIndex = points[0].index;
-        const ts = labels[pointIndex];
-        const existingPlace = placeLabels[ts] || '';
-        showPlaceModal(existingPlace, async (newPlace) => {
-          if (newPlace !== null && newPlace.trim() !== "") {
-            placeLabels[ts] = newPlace;
-            const readingId = pointIdMap[ts];
-            if (readingId) {
-              await fetch(`/api/data/bluetooth/${readingId}/place`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ place_name: newPlace })
-              });
-              await fetchData();
-            }
-          }
-        });
-      }
+   function attachCanvasClickHandler(chart, otherChart, labels) {
+  const canvas = chart.canvas;
+  canvas.onclick = async function(evt) {
+    // Block for guests!
+    if (isGuest) {
+      alert("Guest users cannot edit places.");
+      return;
     }
+    const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+    if (!points.length) return;
+    const pointIndex = points[0].index;
+    const ts = labels[pointIndex];
+    const existingPlace = placeLabels[ts] || '';
+    showPlaceModal(existingPlace, async (newPlace) => {
+      if (newPlace !== null && newPlace.trim() !== "") {
+        placeLabels[ts] = newPlace;
+        const readingId = pointIdMap[ts];
+        if (readingId) {
+          await fetch(`/api/data/wifi/${readingId}/place`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ place_name: newPlace })
+          });
+          await fetchData();
+        }
+      }
+    });
+  }
+}
+
 
     function downloadCSV(data, filename) {
       const csvContent = data.map(row => row.join(",")).join("\n");
@@ -544,6 +554,22 @@ slaPieChartObj = new Chart(document.getElementById('slaPieChart').getContext('2d
     </div>
   </div>
 </div>
+<script>
+fetch('/auth/userinfo').then(res => res.json()).then(user => {
+  if(user.type === 'guest') {
+    document.querySelectorAll('input, select, textarea, button').forEach(el => {
+      if (
+        el.classList.contains('btn-export') ||
+        el.closest('.table-responsive')
+      ) {
+        el.disabled = true;
+      }
+    });
+    
+  }
+});
+</script>
+
 
 </body>
 </html>
