@@ -1,7 +1,7 @@
 const mqtt = require('mqtt');
 const db = require('./db');
 
-const client = mqtt.connect('mqtt://192.168.18.41:1883');
+const client = mqtt.connect('mqtt://10.175.18.44:1883');
 
 client.on('connect', () => {
   console.log('✅ MQTT connected');

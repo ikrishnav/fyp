@@ -16,7 +16,7 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "express-session": "^1.18.1",
-    "mqtt": "^5.13.0",
+    "mqtt": "^5.13.2",
     "mysql": "^2.18.1",
     "mysql2": "^3.14.1",
     "nodemailer": "^7.0.3",
