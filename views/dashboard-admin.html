@@ -6,6 +6,51 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="/admin.css">
+  <style>
+    /* Modal Only - Rest is in admin.css */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 10000;
+      left: 0; top: 0; width: 100vw; height: 100vh;
+      background: rgba(30,41,59,0.25);
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(3px);
+    }
+    .modal-open .modal { display: flex !important; }
+    .modal .modal-dialog {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px 0 rgba(37,99,235,0.13);
+      max-width: 400px; width: 100%;
+    }
+    .modal-header, .modal-footer {
+      background: transparent;
+      border: none;
+    }
+    .modal-title {
+      color: var(--primary-blue);
+      font-weight: 600;
+      letter-spacing: .01em;
+    }
+    .form-label {
+      color: var(--dark-blue);
+      font-weight: 600;
+    }
+    .form-control {
+      background: var(--very-light-blue);
+      border: 1px solid var(--border-gray);
+      border-radius: 10px;
+      color: var(--dark-blue);
+      font-size: 1em;
+      margin-bottom: 0.5em;
+    }
+    .form-control:focus {
+      border: 1.5px solid var(--primary-blue);
+      background: #fff;
+      color: var(--dark-blue);
+    }
+  </style>
 </head>
 <body>
   <div class="main-header">
@@ -13,6 +58,24 @@
       <div class="text-center">
         <h2 class="mb-2">🛠️ Admin Dashboard - All Devices Overview</h2>
         <p class="mb-0 opacity-75">Real-time monitoring for all connected devices</p>
+      </div>
+      <div class="user-card">
+        <a href="/dashboard/admin" style="
+          position: absolute;
+          top: 38px;
+          left: 38px;
+          z-index: 20;
+          display: inline-flex;
+          align-items: center;
+          background: none;
+          border: none;
+          padding: 0;
+          cursor: pointer;
+          border-radius: 50%;
+          transition: background 0.16s;
+        ">
+          <img src="/arrow1.png" alt="Back" style="width:48px; height:48px; border-radius: 18px; box-shadow: 0 2px 16px rgba(60,70,220,0.07); background: transparent;">
+        </a>
       </div>
     </div>
   </div>
@@ -66,7 +129,7 @@ const labels = {
 function createSection(type, label) {
   return `
     <div class="card my-4">
-      <h5 class="card-title p-3">${label} ${type === 'data' ? 'Sensor Readings' : 'SLA Breaches'}</h5>
+      <h5 class="card-title">${label} ${type === 'data' ? 'Sensor Readings' : 'SLA Breaches'}</h5>
       <div class="table-responsive">
         <table class="table table-dark table-sm align-middle">
           <thead>
@@ -233,25 +296,5 @@ document.addEventListener("DOMContentLoaded", function() {
   };
 });
 </script>
-
-<style>
-/* Basic Modal Styles */
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 10000;
-  left: 0; top: 0; width: 100vw; height: 100vh;
-  background: rgba(0,0,0,0.5);
-  align-items: center; justify-content: center;
-}
-.modal-open .modal { display: flex !important; }
-.modal .modal-dialog {
-  background: #232946;
-  border-radius: 16px;
-  box-shadow: 0 4px 24px 0 rgba(0,0,0,0.18);
-  max-width: 400px; width: 100%;
-}
-</style>
-
 </body>
 </html>

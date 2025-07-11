@@ -19,6 +19,7 @@
       margin-bottom: 38px;
       background: linear-gradient(90deg, #24c6dc 25%, #a384fe 85%);
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
       display: flex;
       align-items: center;
@@ -75,9 +76,7 @@
 <body class="login-body">
   <div class="auth-container">
     <div class="auth-card" style="max-width: 540px;">
-      <div class="auth-title">
-        <span class="icon-globe">🌐</span>
-        Choose Dashboard
+      <div class="auth-title">      Choose Dashboard
       </div>
       <div class="dashboard-buttons">
         <a href="/views/dashboard-sigfox1.html" id="sigfox1-btn">
@@ -101,6 +100,23 @@
       </div>
     </div>
   </div>
+  <a href="/" style="
+  position: absolute;
+  top: 38px;
+  left: 38px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background 0.16s;
+">
+  <img src="/arrow1.png" alt="Back" style="width:48px; height:48px; border-radius: 18px; box-shadow: 0 2px 16px rgba(60,70,220,0.07); background: transparent;">
+</a>
+
   <script>
   fetch('/auth/userinfo').then(res => res.json()).then(user => {
     if(user.type === 'guest') {

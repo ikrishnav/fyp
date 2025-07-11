@@ -12,6 +12,7 @@
 <body>
   <div class="dashboard-header">
     <div class="container">
+
       <div class="text-center">
         <h1 class="dashboard-title floating-icon">📡 Sigfox 1 Dashboard</h1>
         <p class="dashboard-subtitle">Real-time Environmental Monitoring System</p>
@@ -19,6 +20,22 @@
     </div>
   </div>
   <div class="container">
+<a href="/dashboard-selector" class="back-link" style="
+  display: inline-flex; 
+  align-items: center; 
+  gap: 10px; 
+  margin-bottom: 26px; 
+  text-decoration: none; 
+  font-weight: 700; 
+  font-size: 1.08rem; 
+  color: #6d28d9;
+  transition: color .18s;
+">
+  <img src="/arrow.png" alt="Back" style="width:34px;height:34px;vertical-align:middle;box-shadow:0 2px 10px rgba(100,70,255,0.11);border-radius: 50%;">
+  Back to Dashboard Selector
+</a>
+
+
     <!-- Metrics Grid -->
     <div class="row g-4 mb-4">
       <div class="col-lg-3 col-md-6">
@@ -50,6 +67,43 @@
         </div>
       </div>
     </div>
+<div class="row g-4 mb-4">
+      <div class="col-12">
+        <div class="chart-card" style="min-height:170px; position:relative;">
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <h5 class="chart-title" style="margin-bottom:0;">⚡ Quick Analytics</h5>
+            <a href="/dashboard/sigfox1/filter" class="filter-btn" title="Filter & Export Data">
+              <span class="filter-icon">🔎</span>
+              <span class="filter-label">Filter & Export Data</span>
+            </a>
+          </div>
+          <div class="stats-grid" style="margin-top:16px;">
+            <div class="stat-item">
+              <div class="stat-label">Total Readings</div>
+              <div id="total-readings" class="stat-value">--</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Avg Temperature</div>
+              <div id="avg-temp" class="stat-value">-- °C</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Avg Humidity</div>
+              <div id="avg-hum" class="stat-value">-- %</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Uptime</div>
+              <div class="stat-value">99.8%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- END Quick Analytics -->
+
+    <!-- (Removed the old mt-3 text-end button here) -->
+
+  </div>
+
     <!-- Alert -->
     <div class="alert alert-custom text-center" id="sla-alert" style="display: none;"></div>
     <!-- Charts Grid -->
@@ -166,6 +220,7 @@
       </div>
     </div>
   </div>
+
   <script>
     let tempCSV = [['Device ID', 'Timestamp', 'Temperature']];
     let humCSV = [['Device ID', 'Timestamp', 'Humidity']];
@@ -345,6 +400,26 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
         let totalDevices = Object.keys(grouped).length;
         let slaBreached = breaches.length;
         let totalReadings = sensorData.length;
+
+        // ========== QUICK ANALYTICS: Calculate averages ==========
+        let avgTemp = '--';
+        let avgHum = '--';
+        if (sensorData.length > 0) {
+          avgTemp = (
+            sensorData.reduce((sum, entry) => sum + Number(entry.temperature), 0) /
+            sensorData.length
+          ).toFixed(1);
+          avgHum = (
+            sensorData.reduce((sum, entry) => sum + Number(entry.humidity), 0) /
+            sensorData.length
+          ).toFixed(1);
+        }
+        // Update Quick Analytics stats
+        document.getElementById("total-readings").innerText = totalReadings;
+        document.getElementById("avg-temp").innerText = `${avgTemp}°C`;
+        document.getElementById("avg-hum").innerText = `${avgHum}%`;
+
+        // ========== END QUICK ANALYTICS ==========
 
         const tempDatasets = [], humDatasets = [];
         const pieLabels = ['Compliant', 'Breached'];
@@ -695,7 +770,7 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
       startAutoRefresh();
     });
 
-    // Add CSS for ripple effect
+    // Add CSS for ripple effect and filter-btn
     const style = document.createElement('style');
     style.textContent = `
       .ripple {
@@ -712,6 +787,75 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
           opacity: 0;
         }
       }
+      .filter-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(90deg,#24c6dc,#5433ff);
+        color: #fff;
+        font-weight: 600;
+        font-size: 1.04em;
+        padding: 8px 22px 8px 16px;
+        border: none;
+        border-radius: 13px;
+        box-shadow: 0 4px 20px 0 rgba(36,198,220,0.12), 0 2px 7px 0 rgba(84,51,255,0.07);
+        transition: background .15s, box-shadow .13s, transform .08s;
+        cursor: pointer;
+        text-decoration: none;
+        margin-left: 14px;
+        margin-right: 2px;
+      }
+      .filter-btn:hover, .filter-btn:focus {
+        background: linear-gradient(90deg,#5433ff,#24c6dc);
+        box-shadow: 0 6px 24px 0 rgba(84,51,255,0.14), 0 3px 12px 0 rgba(36,198,220,0.13);
+        color: #f9fafc;
+        transform: translateY(-2px) scale(1.04);
+        text-decoration: none;
+      }
+      .filter-icon {
+        font-size: 1.17em;
+        margin-right: 2px;
+      }
+      @media (max-width: 700px) {
+        .filter-btn {
+          width: 100%;
+          justify-content: center;
+          font-size: 1.04em;
+          margin: 12px 0 0 0;
+          padding: 12px 0;
+          border-radius: 12px;
+        }
+      }
+      /* ----------- NEW for Quick Analytics (match Sigfox 2) ----------- */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px 16px;
+        margin-top: 20px;
+      }
+      .stat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        background: rgba(245,245,255,0.07);
+        border-radius: 12px;
+        padding: 13px 18px 11px 18px;
+        font-size: 1.05rem;
+        box-shadow: 0 1px 4px rgba(20,20,50,0.07);
+      }
+      .stat-label {
+        font-size: 0.96rem;
+        font-weight: 500;
+        color: #818cf8;
+        margin-bottom: 3px;
+      }
+      .stat-value {
+        font-weight: 700;
+        font-size: 1.14rem;
+        color: #3f3cbb;
+        margin-left: 1px;
+      }
+      /* --------------------------------------------------------------- */
     `;
     document.head.appendChild(style);
   </script>

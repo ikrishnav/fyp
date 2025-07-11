@@ -7,6 +7,11 @@ router.get('/dashboard/sigfox1', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/dashboard-sigfox1.html'));
 });
 
+// === NEW: Serve the filter page ===
+router.get('/dashboard/sigfox1/filter', (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/dashboard-sigfox1-filter.html'));
+});
+
 // --- Sensor data for Sigfox 1 (now also returns place_name) ---
 router.get('/api/data/sigfox1', (req, res) => {
   const query = `
