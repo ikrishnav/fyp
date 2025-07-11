@@ -1,35 +1,42 @@
 from network import Bluetooth
+import sys
+sys.path.append('/flash/lib')
 import ubinascii
 import time
+import ujson
+from wifi import connect_wifi
+from umqtt.simple import MQTTClient
 
-def scan_ble(timeout=5000):
+SSID = 'NOKIA-79A1'
+PASSWORD = 'UZY4Z3tr4K'
+DEVICE_ID = 'fipy-bluetooth-unit-01'
+MQTT_BROKER = '192.168.18.41'
+MQTT_TOPIC = 'iot/bluetooth'
+
+connect_wifi(SSID, PASSWORD)
+
+def scan_ble():
     bt = Bluetooth()
     bt.start_scan(-1)
-    print("📡 Scanning for BLE advertisements...")
+    print("🔍 Scanning BLE...")
 
     start = time.ticks_ms()
-
-    while time.ticks_diff(time.ticks_ms(), start) < timeout:
+    while time.ticks_diff(time.ticks_ms(), start) < 5000:
         adv = bt.get_adv()
         if adv:
             try:
                 raw = bt.resolve_adv_data(adv.data, Bluetooth.ADV_MANUFACTURER_DATA)
                 if raw and raw.startswith(b'\xff\xff') and len(raw) >= 4:
-                    print("ð¶ Received:", ubinascii.hexlify(raw))
-                    temperature = raw[2]  # 0x1E -> 30
-                    humidity = raw[3]     # 0x2D -> 45
-
+                    temp = raw[2]
+                    hum = raw[3]
+                    bt.stop_scan()
                     return {
-                        'mac': ubinascii.hexlify(adv.mac).decode(),
-                        'rssi': adv.rssi,
-                        'temperature': temperature,
-                        'humidity': humidity
+                        "temperature": temp,
+                        "humidity": hum
                     }
-
             except Exception as e:
-                print("❌ Error parsing adv:", e)
-
+                print("❌ Parse error:", e)
         time.sleep(0.1)
 
     bt.stop_scan()
-    return None  # nothing found
+    return None

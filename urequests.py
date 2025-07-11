@@ -1,9 +1,3 @@
-"""Open an arbitrary URL.
-
-Adapted for Micropython by Alex Cowan <acowan@gmail.com>
-
-Works in a similar way to python-requests http://docs.python-requests.org/en/latest/
-"""
 
 import socket
 try:
@@ -191,7 +185,7 @@ def b64encode(s, altchars=None):
     """Reproduced from micropython base64"""
     if not isinstance(s, (bytes, bytearray)):
         raise TypeError("expected bytes, not %s" % s.__class__.__name__)
-    # Strip off the trailing newline
+
     encoded = binascii.b2a_base64(s)[:-1]
     if altchars is not None:
         if not isinstance(altchars, bytes_types):

@@ -4,10 +4,10 @@ import ujson
 from bluetooth import scan_ble
 from wifi import connect_wifi
 
-SSID = 'NOKIA-79A1'
-PASSWORD = 'UZY4Z3tr4K'
+SSID = 'Krish'
+PASSWORD = '12345678'
 DEVICE_ID = 'fipy-bluetooth-unit-01'
-BACKEND_URL = 'http://192.168.18.41:3000/api/data/bluetooth'
+BACKEND_URL = 'http://10.127.246.73:3000/api/data/bluetooth'
 
 connect_wifi(SSID, PASSWORD)
 

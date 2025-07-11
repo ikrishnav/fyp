@@ -2,7 +2,6 @@ import time
 from pycoproc_2 import Pycoproc
 from SI7006A20 import SI7006A20
 from sigfox import send_via_sigfox
-
 DEVICE_ID = 'sigfox-device-02'
 
 py = Pycoproc()
