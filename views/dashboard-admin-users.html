@@ -3,76 +3,226 @@
 <head>
   <meta charset="UTF-8">
   <title>Admin User Management</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@800;700;400&display=swap" rel="stylesheet">
   <style>
     body {
-      background: linear-gradient(120deg, #181b29 0%, #17152e 100%);
       min-height: 100vh;
+      margin: 0;
+      font-family: 'Nunito', sans-serif;
+      color: #e2e8f0;
+      background: linear-gradient(135deg, #202044 0%, #262674 40%, #1db8a6 100%);
+      background-size: 300% 300%;
+      animation: gradientMove 12s ease-in-out infinite;
+    }
+    @keyframes gradientMove {
+      0%, 100% { background-position: 0% 50%; }
+      50%      { background-position: 100% 50%; }
     }
     .user-card {
-      background: rgba(34, 41, 71, 0.81);
-      box-shadow: 0 8px 40px 8px #24c6dc2e, 0 2px 18px 0 rgba(0,0,0,0.19);
+      background: rgba(32, 36, 64, 0.91);
       border-radius: 32px;
-      padding: 48px 32px 38px 32px;
-      max-width: 700px;
-      margin: 70px auto 0 auto;
+      box-shadow: 0 8px 50px 0 #25e6e63c, 0 2px 18px 0 rgba(0,0,0,0.18);
+      padding: 54px 42px 38px 42px;
+      max-width: 720px;
+      width: 98vw;
+      margin: 80px auto 0 auto;
+      position: relative;
       color: #f3f6fa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     .user-title {
-      font-size: 2.08rem;
-      font-weight: 800;
-      background: linear-gradient(90deg, #24c6dc 25%, #a384fe 85%);
+      font-size: 2.3rem;
+      font-weight: 900;
+      background: linear-gradient(90deg, #25e6e6 10%, #4a90e2 40%, #8b84fe 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 13px;
       display: flex;
       align-items: center;
-      gap: 14px;
-      letter-spacing: .01em;
-      margin-bottom: 12px;
+      gap: 13px;
       justify-content: center;
+      letter-spacing: .01em;
+      text-align: center;
     }
     .user-title .icon-user {
-      font-size: 2.4rem;
-      color: #24c6dc;
-      filter: drop-shadow(0 3px 12px #25e6e660);
+      font-size: 2.2rem;
+      filter: drop-shadow(0 2px 6px #25e6e655);
     }
     .user-desc {
-      color: #c6e6fb;
-      opacity: 0.87;
+      color: #b6cfff;
+      opacity: 0.91;
       margin-bottom: 34px;
-      font-size: 1.06rem;
+      font-size: 1.15rem;
       text-align: center;
       font-weight: 500;
     }
+    form#add-user-form {
+      width: 100%;
+      margin-bottom: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px 1%;
+      align-items: center;
+      justify-content: center;
+    }
+    form#add-user-form > * {
+      flex: 1 1 170px;
+      min-width: 150px;
+    }
     .form-control, .form-select {
-      border-radius: 13px;
-      font-size: 1.05em;
-      background: #23243c;
-      border: 1px solid #333;
-      color: #e4e9fa;
-    }
-    .btn-success, .btn-outline-warning, .btn-outline-danger {
-      border-radius: 13px;
-      font-weight: 600;
-      font-size: 1em;
-    }
-    .table {
       border-radius: 12px;
-      overflow: hidden;
-      margin-top: 1.5rem;
-      background: rgba(34, 41, 71, 0.93);
+      font-size: 1.09em;
+      background: rgba(200,220,255,0.10);
+      border: 1.5px solid #273057;
+      color: #e2eaff;
+      padding: 10px 16px;
+      margin-bottom: 0;
+      outline: none;
+      transition: border .18s, box-shadow .18s;
     }
-    .badge.bg-success { background: linear-gradient(90deg, #1fe1b3 0%, #30c8f9 100%);}
-    .badge.bg-secondary { background: #444a62;}
-    .btn-light { border-radius: 13px; }
-    @media (max-width: 800px) {
-      .user-card { padding: 5vw 2vw;}
+    .form-control:focus, .form-select:focus {
+      border: 2px solid #25e6e6;
+      box-shadow: 0 0 8px #25e6e633;
+      background: rgba(48,54,94,0.20);
+      color: #fff;
+    }
+    .btn-success {
+      background: linear-gradient(90deg,#25e6e6 0%, #4a90e2 100%);
+      color: #fff;
+      font-weight: 800;
+      font-size: 1.11em;
+      border: none;
+      border-radius: 13px;
+      padding: 11px 0;
+      box-shadow: 0 2px 12px 0 #25e6e620;
+      transition: background 0.16s, box-shadow 0.14s, transform 0.11s;
+      letter-spacing: 0.01em;
+      outline: none;
+      width: 100%;
+    }
+    .btn-success:hover {
+      background: linear-gradient(90deg,#4a90e2 0%, #25e6e6 100%);
+      color: #fff;
+      box-shadow: 0 6px 24px 0 #25e6e62a;
+      transform: translateY(-2.5px) scale(1.025);
+    }
+    .table-responsive {
+      width: 100%;
+    }
+    .table-modern {
+      width: 100%;
+      border-radius: 15px;
+      overflow: hidden;
+      background: rgba(36,44,82,0.91);
+      margin-top: 16px;
+      box-shadow: 0 10px 36px #25e6e60e;
+      color: #e7eaff;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 1.06rem;
+    }
+    .table-modern th, .table-modern td {
+      background: transparent !important;
+      vertical-align: middle;
+      text-align: center;
+      border-bottom: 1px solid #253055;
+      padding: 15px 13px;
+    }
+    .table-modern th {
+      background: linear-gradient(90deg,#1b233a,#25397e 98%);
+      color: #34e4e4;
+      font-size: .95em;
+      font-weight: 800;
+      border: none;
+      text-transform: uppercase;
+      letter-spacing: .02em;
+    }
+    .table-modern tbody tr:last-child td { border-bottom: none; }
+    .badge.bg-success {
+      background: linear-gradient(90deg, #1fe1b3 0%, #30c8f9 100%);
+      color: #182032;
+      font-weight: 700;
+      border-radius: 8px;
+      font-size: .98em;
+      padding: 8px 14px;
+      box-shadow: 0 2px 10px #30c8f945;
+    }
+    .badge.bg-secondary {
+      background: #38416a;
+      color: #b7b7be;
+      font-weight: 700;
+      border-radius: 8px;
+      font-size: .98em;
+      padding: 8px 14px;
+    }
+    .btn-outline-warning, .btn-outline-danger {
+      border-radius: 9px;
+      font-weight: 700;
+      font-size: 1em;
+      background: none;
+      border-width: 2px;
+      box-shadow: none;
+      margin-left: 0.35em;
+      transition: background 0.18s, color 0.18s;
+    }
+    .btn-outline-warning {
+      border-color: #e9c46a;
+      color: #e9c46a;
+    }
+    .btn-outline-warning:hover {
+      background: #e9c46a;
+      color: #1e2337;
+    }
+    .btn-outline-danger {
+      border-color: #fa709a;
+      color: #fa709a;
+    }
+    .btn-outline-danger:hover {
+      background: #fa709a;
+      color: #fff;
+    }
+    #user-alert {
+      text-align: center;
+      font-size: 1.07em;
+      font-weight: 700;
+      min-height: 28px;
+      margin-top: 8px;
+    }
+    @media (max-width: 900px) {
+      .user-card { padding: 4vw 2vw;}
       .user-title { font-size: 1.32rem;}
+    }
+    @media (max-width: 600px) {
+      .user-card { padding: 17px 3vw 14px 3vw; }
+      .user-title { font-size: 1.13rem; }
+      .table-modern th, .table-modern td { font-size: 0.98em; padding: 8px 4px;}
+      form#add-user-form { gap: 8px 0.5vw;}
     }
   </style>
 </head>
 <body>
   <div class="user-card">
+    <!-- Keep your back button as-is: -->
+    <a href="/dashboard/admin" style="
+      position: absolute;
+      top: 38px;
+      left: 38px;
+      z-index: 20;
+      display: inline-flex;
+      align-items: center;
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      border-radius: 50%;
+      transition: background 0.16s;
+    ">
+      <img src="/arrow2.png" alt="Back" style="width:48px; height:48px; border-radius: 18px; box-shadow: 0 2px 16px rgba(60,70,220,0.07); background: transparent;">
+    </a>
     <div class="user-title">
       <span class="icon-user">👤</span>
       User Management
@@ -80,31 +230,21 @@
     <div class="user-desc">
       Add, activate/deactivate, or remove users for device dashboards.
     </div>
-    <div class="mb-4">
-      <form id="add-user-form" class="row g-2 align-items-center">
-        <div class="col-md-4">
-          <input type="email" name="email" class="form-control" placeholder="User Email" required>
-        </div>
-        <div class="col-md-3">
-          <input type="password" name="password" class="form-control" placeholder="Password" required>
-        </div>
-        <div class="col-md-3">
-          <select name="role" class="form-select" required>
-            <option value="">Role...</option>
-            <option value="sigfox1">Sigfox1</option>
-            <option value="sigfox2">Sigfox2</option>
-            <option value="wifi">Wi-Fi</option>
-            <option value="bluetooth">Bluetooth</option>
-          </select>
-        </div>
-        <div class="col-md-2">
-          <button class="btn btn-success w-100" type="submit">Add User</button>
-        </div>
-      </form>
-      <div id="user-alert" class="mt-2"></div>
-    </div>
+    <form id="add-user-form" class="row g-2 align-items-center">
+      <input type="email" name="email" class="form-control" placeholder="User Email" required>
+      <input type="password" name="password" class="form-control" placeholder="Password" required>
+      <select name="role" class="form-select" required>
+        <option value="">Role...</option>
+        <option value="sigfox1">Sigfox1</option>
+        <option value="sigfox2">Sigfox2</option>
+        <option value="wifi">Wi-Fi</option>
+        <option value="bluetooth">Bluetooth</option>
+      </select>
+      <button class="btn btn-success" type="submit">Add User</button>
+    </form>
+    <div id="user-alert" class="mt-2"></div>
     <div class="table-responsive">
-      <table class="table table-dark table-bordered align-middle">
+      <table class="table-modern">
         <thead>
           <tr>
             <th>Email</th>
@@ -118,11 +258,7 @@
         </tbody>
       </table>
     </div>
-    <a href="/dashboard/admin" class="btn btn-light mt-4">
-      ⬅️ Back to Admin Panel
-    </a>
   </div>
-
   <script>
     // Fetch users and render table
     async function loadUsers() {

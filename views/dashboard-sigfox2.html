@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="/sigfox2.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
- 
 </head>
 
 <body>
@@ -147,15 +146,65 @@
     </div>
   </div>
 
+  <!-- Place Name Modal -->
+  <div id="place-modal" style="display:none; position:fixed; left:0; top:0; width:100vw; height:100vh; z-index:1000; background:rgba(0,0,0,0.4);">
+    <div style="
+        position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+        background:rgba(30,36,60,0.7);
+        box-shadow: 0 4px 24px 0 rgba(0,0,0,0.5);
+        border-radius: 24px;
+        padding:36px 32px 28px 32px; min-width:320px; max-width:90vw;
+        backdrop-filter: blur(16px) saturate(140%);
+        border: 1px solid rgba(255,255,255,0.11);
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      " id="place-modal-box">
+      <div style="font-size:1.2rem; font-weight:600; letter-spacing:.02em; margin-bottom:10px;">
+        Add / Edit Place Name
+      </div>
+      <input id="place-input" type="text" placeholder="Enter location..." style="
+          border-radius: 10px;
+          border: 1px solid rgba(255,255,255,0.18);
+          padding: 12px;
+          background: rgba(255,255,255,0.13);
+          color: #fff; font-size:1rem; outline: none;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+          margin-bottom: 8px;
+        ">
+      <div style="display: flex; gap: 10px; margin-top:8px; justify-content:flex-end;">
+        <button id="place-cancel" style="
+            padding: 8px 20px; border:none;
+            border-radius: 8px; background:rgba(255,255,255,0.10); color:#fff; cursor:pointer;
+            font-size:1rem;
+            transition: background 0.2s;
+        ">Cancel</button>
+        <button id="place-ok" style="
+            padding: 8px 24px; border:none;
+            border-radius: 8px; background:linear-gradient(90deg,#24c6dc,#5433ff); color:#fff; cursor:pointer;
+            font-size:1rem;
+            font-weight: 600;
+            transition: background 0.2s;
+        ">Save</button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    // == CSV and Place Edit Support ==
     const tempCSV = [['Device ID', 'Timestamp', 'Temperature']];
     const humCSV = [['Device ID', 'Timestamp', 'Humidity']];
     const breachCSV = [['Device ID', 'Timestamp', 'Temperature', 'Humidity', 'Status']];
-let isGuest = false;
-// Check guest user at page load
-fetch('/auth/userinfo').then(res => res.json()).then(user => {
-  isGuest = user.type === 'guest';
-});
+    let isGuest = false;
+    // Place label & mapping
+    const placeLabels = {}; // timestamp → place name
+    const pointIdMap = {};  // timestamp → sensor_data.id
+
+    // Check guest user at page load
+    fetch('/auth/userinfo').then(res => res.json()).then(user => {
+      isGuest = user.type === 'guest';
+    });
 
     function downloadCSV(data, filename) {
       const csv = data.map(row => row.join(",")).join("\n");
@@ -176,7 +225,77 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
       downloadCSV(breachCSV, 'sla_breach_data.csv');
     }
 
+    // Modal logic (copy from working dashboards)
+    function showPlaceModal(currentPlace, onOk) {
+      const modal = document.getElementById('place-modal');
+      const input = document.getElementById('place-input');
+      input.value = currentPlace || '';
+      modal.style.display = 'block';
+      input.focus();
+
+      function cleanup() {
+        modal.style.display = 'none';
+        document.getElementById('place-ok').onclick = null;
+        document.getElementById('place-cancel').onclick = null;
+        input.onkeydown = null;
+      }
+
+      document.getElementById('place-ok').onclick = function() {
+        cleanup();
+        onOk(input.value);
+      };
+      document.getElementById('place-cancel').onclick = function() {
+        cleanup();
+        onOk(null);
+      };
+      input.onkeydown = function(e) {
+        if (e.key === 'Enter') {
+          cleanup();
+          onOk(input.value);
+        }
+        if (e.key === 'Escape') {
+          cleanup();
+          onOk(null);
+        }
+      };
+    }
+
+    // Chart click handler for place edit
+    function attachCanvasClickHandler(chart, labels) {
+      const canvas = chart.canvas;
+      canvas.onclick = async function(evt) {
+        if (isGuest) {
+          alert("Guest users cannot edit places.");
+          return;
+        }
+        const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+        if (!points.length) return;
+        const pointIndex = points[0].index;
+        const ts = labels[pointIndex];
+        const existingPlace = placeLabels[ts] || '';
+        showPlaceModal(existingPlace, async (newPlace) => {
+          if (newPlace !== null && newPlace.trim() !== "") {
+            placeLabels[ts] = newPlace;
+            const readingId = pointIdMap[ts];
+            if (readingId) {
+              await fetch(`/api/data/sigfox2/${readingId}/place`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ place_name: newPlace })
+              });
+              await fetchData();
+            }
+          }
+        });
+      }
+    }
+
+    // Main data & chart logic
     async function fetchData() {
+      // Clear previous place labels and point map
+      for (const key in placeLabels) delete placeLabels[key];
+      for (const key in pointIdMap) delete pointIdMap[key];
+
       const [sensorRes, breachRes] = await Promise.all([
         fetch('/api/data/sigfox2'),
         fetch('/api/breaches/sigfox2')
@@ -211,6 +330,9 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
         allTimestampsSet.add(ts);
         if (!grouped[entry.device_id]) grouped[entry.device_id] = [];
         grouped[entry.device_id].push(entry);
+        // Fill annotation info
+        if (entry.place_name) placeLabels[ts] = entry.place_name;
+        pointIdMap[ts] = entry.id;
       });
 
       const allTimestamps = Array.from(allTimestampsSet).sort();
@@ -220,8 +342,8 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
       let slaBreached = breaches.length;
       let totalReadings = sensorData.length;
 
-      const avgTemp = sensorData.reduce((sum, entry) => sum + entry.temperature, 0) / sensorData.length;
-      const avgHum = sensorData.reduce((sum, entry) => sum + entry.humidity, 0) / sensorData.length;
+      const avgTemp = sensorData.length ? (sensorData.reduce((sum, entry) => sum + entry.temperature, 0) / sensorData.length) : 0;
+      const avgHum = sensorData.length ? (sensorData.reduce((sum, entry) => sum + entry.humidity, 0) / sensorData.length) : 0;
 
       const tempDatasets = [], humDatasets = [];
       const pieLabels = ['Compliant', 'Breached'];
@@ -288,13 +410,13 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
         colorIndex++;
       }
 
-      document.getElementById("latest-temp").innerText = `${latestTemp}°C`;
-      document.getElementById("latest-hum").innerText = `${latestHum}%`;
+      document.getElementById("latest-temp").innerText = latestTemp !== undefined && latestTemp !== null ? `${latestTemp}°C` : '-- °C';
+      document.getElementById("latest-hum").innerText = latestHum !== undefined && latestHum !== null ? `${latestHum}%` : '-- %';
       document.getElementById("device-count").innerText = totalDevices;
       document.getElementById("sla-status").innerText = slaBreached > 0 ? "BREACH" : "OK";
       document.getElementById("total-readings").innerText = totalReadings;
-      document.getElementById("avg-temp").innerText = `${avgTemp.toFixed(1)}°C`;
-      document.getElementById("avg-hum").innerText = `${avgHum.toFixed(1)}%`;
+      document.getElementById("avg-temp").innerText = sensorData.length ? `${avgTemp.toFixed(1)}°C` : '-- °C';
+      document.getElementById("avg-hum").innerText = sensorData.length ? `${avgHum.toFixed(1)}%` : '-- %';
 
       if (slaBreached > 0) {
         document.getElementById("sla-alert").style.display = 'block';
@@ -302,6 +424,8 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
           <strong>⚠️ CRITICAL ALERT</strong><br>
           ${slaBreached} SLA breaches detected! Immediate attention required.
         `;
+      } else {
+        document.getElementById("sla-alert").style.display = 'none';
       }
 
       const chartOptions = {
@@ -327,7 +451,13 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
             borderWidth: 2,
             cornerRadius: 15,
             titleFont: { size: 16, weight: '600' },
-            bodyFont: { size: 14 }
+            bodyFont: { size: 14 },
+            callbacks: {
+              title: function(context) {
+                const label = context[0].label;
+                return label + (placeLabels[label] ? ' - ' + placeLabels[label] : '');
+              }
+            }
           },
           datalabels: { display: false }
         },
@@ -361,19 +491,25 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
         }
       };
 
-      new Chart(document.getElementById('tempChart'), {
+      // Destroy any previous charts (avoid duplicates)
+      if (window.tempChartObj) window.tempChartObj.destroy();
+      if (window.humChartObj) window.humChartObj.destroy();
+
+      window.tempChartObj = new Chart(document.getElementById('tempChart'), {
         type: 'line',
         data: { labels: allTimestamps, datasets: tempDatasets },
         options: chartOptions,
         plugins: [ChartDataLabels]
       });
-
-      new Chart(document.getElementById('humChart'), {
+      window.humChartObj = new Chart(document.getElementById('humChart'), {
         type: 'line',
         data: { labels: allTimestamps, datasets: humDatasets },
         options: chartOptions,
         plugins: [ChartDataLabels]
       });
+
+      attachCanvasClickHandler(window.tempChartObj, allTimestamps);
+      attachCanvasClickHandler(window.humChartObj, allTimestamps);
 
       new Chart(document.getElementById('slaPieChart'), {
         type: 'doughnut',
@@ -442,20 +578,19 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
     fetchData();
   </script>
   <script>
-fetch('/auth/userinfo').then(res => res.json()).then(user => {
-  if(user.type === 'guest') {
-    document.querySelectorAll('input, select, textarea, button').forEach(el => {
-      if (
-        el.classList.contains('btn-export') ||
-        el.closest('.table-responsive')
-      ) {
-        el.disabled = true;
+    fetch('/auth/userinfo').then(res => res.json()).then(user => {
+      if(user.type === 'guest') {
+        document.querySelectorAll('input, select, textarea, button').forEach(el => {
+          if (
+            el.classList.contains('btn-export') ||
+            el.closest('.table-responsive')
+          ) {
+            el.disabled = true;
+          }
+        });
+
       }
     });
-    
-  }
-});
-</script>
+  </script>
 </body>
-
 </html>

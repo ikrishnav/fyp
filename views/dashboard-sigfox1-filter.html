@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sigfox 1 | Filter & Export Data</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/sigfox1.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #1e293b;
+      min-height: 100vh;
+    }
+    .dashboard-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 2.7rem 0 2rem 0;
+      margin-bottom: 1.7rem;
+      border-radius: 0 0 28px 28px;
+      box-shadow: 0 10px 40px rgba(139, 92, 246, 0.15);
+      position: relative;
+      overflow: hidden;
+      animation: fadeInUp 0.8s ease-out;
+    }
+    .dashboard-title {
+      font-size: 2.3rem;
+      font-weight: 800;
+      margin: 0;
+      letter-spacing: -0.04em;
+      background: linear-gradient(45deg, #fff, #e0e7ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .dashboard-subtitle {
+      font-size: 1.1rem;
+      opacity: 0.88;
+      font-weight: 400;
+      margin-top: .3rem;
+    }
+    .filter-card {
+      background: linear-gradient(135deg, #fff 80%, #f8fafc 100%);
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(139, 92, 246, 0.10);
+      border: 1.5px solid rgba(139,92,246,0.11);
+      padding: 2.5rem 2.1rem 2rem 2.1rem;
+      margin: 0 auto 24px auto;
+      max-width: 680px;
+      animation: fadeInUp 1.2s;
+    }
+    .filter-title {
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: 0.1em;
+      letter-spacing: -.03em;
+      background: linear-gradient(45deg,#667eea,#764ba2,#a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      display: inline-block;
+    }
+    .filter-sub {
+      font-size: 1.05rem;
+      color: #5e6e90;
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
+    .filter-group {
+      display: flex; gap: 22px; flex-wrap: wrap; align-items: end;
+      margin-bottom: 10px;
+    }
+    .filter-label {
+      font-weight: 600; font-size: 1.08rem; margin-bottom: 6px;
+      color: #764ba2;
+    }
+    .form-control {
+      border-radius: 9px;
+      border: 1.4px solid #a78bfa;
+      background: #f3f4f6;
+      color: #3c366b;
+      font-size: 1.01rem;
+      box-shadow: none !important;
+    }
+    .form-control:focus {
+      border-color: #8b5cf6;
+      box-shadow: 0 0 0 2px #8b5cf633;
+      background: #f8f9fc;
+      color: #4f327d;
+    }
+    .btn-gradient {
+      background: linear-gradient(90deg,#24c6dc,#5433ff);
+      color: #fff;
+      font-weight: 600;
+      border-radius: 11px;
+      border: none;
+      transition: background .2s;
+      padding: 8px 26px;
+      font-size: 1rem;
+      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.13);
+    }
+    .btn-gradient:active { background: linear-gradient(90deg,#5433ff,#24c6dc); }
+    .btn-secondary {
+      border-radius: 8px !important;
+      background: #e3e8ff !important;
+      color: #6246ea !important;
+      font-weight: 600;
+      font-size: 1rem;
+      border: none !important;
+      margin-left: .7em;
+    }
+    .btn-secondary:active { background: #d1d5fa !important; }
+    .table-modern {
+      background: #fff;
+      color: #1e293b;
+      border-radius: 15px;
+      overflow: hidden;
+      margin-top: 22px;
+      font-size: 1.05rem;
+      box-shadow: 0 10px 36px rgba(139, 92, 246, 0.07);
+    }
+    .table-modern th, .table-modern td {
+      background: transparent !important;
+      color: #3c366b !important;
+      vertical-align: middle;
+    }
+    .table-modern thead tr {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+      color: #fff !important;
+    }
+    .table-modern th {
+      font-weight: 700;
+      letter-spacing: 1px;
+      font-size: .93rem;
+      text-transform: uppercase;
+      border: none;
+      padding: 1.15rem .9rem;
+    }
+    .table-modern td {
+      border: none;
+      padding: .9rem;
+      border-bottom: 1px solid #f2f4fd;
+      position: relative;
+    }
+    .table-modern tbody tr:hover {
+      background: linear-gradient(90deg,rgba(139, 92, 246, 0.05),rgba(99, 102, 241, 0.07));
+      transform: scale(1.01);
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.09);
+    }
+    .no-data {
+      color: #9da9cf; text-align: center; font-size: 1.13rem; padding: 45px 0;
+    }
+    .back-link, .fixed-back-link, .filter-back-btn {
+      color: #764ba2;
+      font-weight:700;
+      text-decoration:none;
+      font-size:1.03rem;
+      background: #f6f7ff;
+      border-radius: 8px;
+      padding: 7px 17px;
+      display: inline-block;
+      margin-bottom: 23px;
+      box-shadow: 0 2px 6px rgba(139, 92, 246, 0.11);
+      transition: color 0.19s, background 0.18s, box-shadow 0.19s;
+      border: none;
+    }
+    .back-link:hover, .fixed-back-link:hover, .filter-back-btn:hover { color: #fff; background: #764ba2; text-decoration:none; }
+    .filter-back-btn {
+      display: none;
+      position: relative;
+      margin-bottom: 22px;
+      font-size: 1.05rem;
+      background: linear-gradient(90deg,#24c6dc,#5433ff);
+      color: #fff;
+      font-weight: 600;
+      border-radius: 10px;
+      padding: 9px 28px;
+      box-shadow: 0 2px 12px rgba(36,198,220,0.13);
+      z-index: 99;
+    }
+    .fade-in {
+      animation: fadeInUp 0.7s;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(40px);}
+      to { opacity: 1; transform: translateY(0);}
+    }
+    @media (max-width: 800px) {
+      .dashboard-title { font-size: 1.5rem; }
+      .filter-card { padding: 1.25rem .4rem 1.2rem .5rem; }
+      .filter-group { flex-direction: column; gap: 0.7em;}
+      .table-modern { font-size: .98rem; }
+      .filter-back-btn { font-size: .98rem; padding: 10px 12px;}
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-header text-center">
+    <div class="container">
+      <h1 class="dashboard-title">🔎 Sigfox 1 Data Filter & Export</h1>
+      <div class="dashboard-subtitle">Search, filter, and export your IoT readings by date or location</div>
+    </div>
+  </div>
+  <div class="container">
+<a href="/dashboard/sigfox1" style="
+  position: absolute;
+  top: 38px;
+  left: 38px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background 0.16s;
+">
+  <img src="/arrow2.png" alt="Back" style="width:48px; height:48px; border-radius: 18px; box-shadow: 0 2px 16px rgba(60,70,220,0.07); background: transparent;">
+</a>
+    <button class="filter-back-btn" id="filter-back-btn" onclick="showFilter()">← Back to Filter</button>
+    <div class="filter-card shadow fade-in" id="filter-card">
+      <div class="filter-title">Filter & Export Data</div>
+      <div class="filter-sub">Filter Sigfox 1 readings by date or place, then export as CSV.</div>
+      <form class="filter-group" id="filter-form" onsubmit="return false;">
+        <div>
+          <div class="filter-label">Date</div>
+          <input type="date" id="filter-date" class="form-control" style="width:150px;">
+        </div>
+        <div>
+          <div class="filter-label">Place</div>
+          <input type="text" id="filter-place" class="form-control" placeholder="Enter place..." style="width:170px;">
+        </div>
+        <div>
+          <button type="button" class="btn btn-gradient" onclick="applyFilter()">Apply</button>
+          <button type="button" class="btn btn-secondary ms-2" onclick="resetFilter()">Clear</button>
+        </div>
+        <div>
+          <button type="button" class="btn btn-gradient" onclick="exportCSV()" style="margin-left:10px;">
+            <span style="font-size:1.12em;">⬇️</span> Export
+          </button>
+        </div>
+      </form>
+      <div style="overflow-x:auto;">
+        <table class="table table-modern" id="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Device ID</th>
+              <th>Timestamp</th>
+              <th>Temperature (°C)</th>
+              <th>Humidity (%)</th>
+              <th>Place</th>
+            </tr>
+          </thead>
+          <tbody id="data-tbody">
+            <tr><td colspan="6" class="no-data">Loading data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <!-- Filtered results table, shown only after filtering -->
+    <div class="filter-card shadow fade-in" id="results-card" style="display:none;">
+      <div class="filter-title">Filtered Results</div>
+      <div class="filter-sub">Results for selected filters. <a>Back to Filter</a> or Export.</div>
+      <div style="overflow-x:auto;">
+        <table class="table table-modern" id="results-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Device ID</th>
+              <th>Timestamp</th>
+              <th>Temperature (°C)</th>
+              <th>Humidity (%)</th>
+              <th>Place</th>
+            </tr>
+          </thead>
+          <tbody id="results-tbody">
+            <tr><td colspan="6" class="no-data">No data.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <button type="button" class="btn btn-gradient mt-4" onclick="exportCSV()">
+        <span style="font-size:1.12em;">⬇️</span> Export
+      </button>
+    </div>
+  </div>
+  <script>
+    let fullData = [];
+    let filteredData = [];
+    let lastDate = '', lastPlace = '';
+
+    window.onload = async function() {
+      let res = await fetch('/api/data/sigfox1');
+      fullData = await res.json();
+      filteredData = [...fullData];
+      renderTable();
+    }
+
+    function applyFilter() {
+      lastDate = document.getElementById('filter-date').value;
+      lastPlace = document.getElementById('filter-place').value;
+      const date = lastDate;
+      const place = lastPlace.trim().toLowerCase();
+      filteredData = fullData.filter(entry => {
+        let ok = true;
+        if (date) ok = ok && entry.timestamp && entry.timestamp.startsWith(date);
+        if (place) ok = ok && entry.place_name && entry.place_name.toLowerCase().includes(place);
+        return ok;
+      });
+      renderResultsTable();
+      document.getElementById('filter-card').style.display = 'none';
+      document.getElementById('results-card').style.display = '';
+      document.getElementById('filter-back-btn').style.display = 'inline-block';
+      document.getElementById('back-link').style.display = "none";
+    }
+
+    function resetFilter() {
+      document.getElementById('filter-date').value = '';
+      document.getElementById('filter-place').value = '';
+      filteredData = [...fullData];
+      renderTable();
+    }
+
+    function showFilter() {
+      // Restore previous filter values
+      document.getElementById('filter-date').value = lastDate;
+      document.getElementById('filter-place').value = lastPlace;
+      document.getElementById('filter-card').style.display = '';
+      document.getElementById('results-card').style.display = 'none';
+      document.getElementById('filter-back-btn').style.display = 'none';
+      document.getElementById('back-link').style.display = "inline-block";
+      renderTable();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('data-tbody');
+      let data = filteredData;
+      if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="no-data">No data for the selected filter.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = data.map((entry, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${entry.device_id}</td>
+          <td>${new Date(entry.timestamp).toLocaleString()}</td>
+          <td>${entry.temperature}</td>
+          <td>${entry.humidity}</td>
+          <td>${entry.place_name ? entry.place_name : '-'}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderResultsTable() {
+      const tbody = document.getElementById('results-tbody');
+      let data = filteredData;
+      if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="no-data">No data for the selected filter.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = data.map((entry, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${entry.device_id}</td>
+          <td>${new Date(entry.timestamp).toLocaleString()}</td>
+          <td>${entry.temperature}</td>
+          <td>${entry.humidity}</td>
+          <td>${entry.place_name ? entry.place_name : '-'}</td>
+        </tr>
+      `).join('');
+    }
+
+    function exportCSV() {
+      if (!filteredData.length) return alert('No data to export!');
+      const rows = [
+        ["#", "Device ID", "Timestamp", "Temperature (°C)", "Humidity (%)", "Place"],
+        ...filteredData.map((e, i) => [
+          i + 1, e.device_id, e.timestamp, e.temperature, e.humidity, e.place_name ? e.place_name : ''
+        ])
+      ];
+      const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], {type: 'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'sigfox1_filtered_data.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 300);
+    }
+  </script>
+</body>
+</html>
