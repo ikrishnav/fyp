@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Sigfox 1 - IoT Environmental Dashboard</title>
+  <title>Main Library - Environmental Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/sigfox1.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -12,10 +12,9 @@
 <body>
   <div class="dashboard-header">
     <div class="container">
-
       <div class="text-center">
-        <h1 class="dashboard-title floating-icon">📡 Sigfox 1 Dashboard</h1>
-        <p class="dashboard-subtitle">Real-time Environmental Monitoring System</p>
+        <h1 class="dashboard-title floating-icon">📚 Main Library Dashboard</h1>
+        <p class="dashboard-subtitle">Real-time Library Environmental Monitoring</p>
       </div>
     </div>
   </div>
@@ -34,8 +33,6 @@
   <img src="/arrow.png" alt="Back" style="width:34px;height:34px;vertical-align:middle;box-shadow:0 2px 10px rgba(100,70,255,0.11);border-radius: 50%;">
   Back to Dashboard Selector
 </a>
-
-
     <!-- Metrics Grid -->
     <div class="row g-4 mb-4">
       <div class="col-lg-3 col-md-6">
@@ -60,10 +57,12 @@
         </div>
       </div>
       <div class="col-lg-3 col-md-6">
-        <div class="metric-card ripple-effect">
+        <div class="metric-card ripple-effect" style="cursor:pointer;" id="sla-status-card">
           <span class="metric-icon floating-icon">⚡</span>
           <div class="metric-title">SLA Status</div>
-          <div id="sla-status" class="metric-value">OK</div>
+          <button id="sla-status-btn" class="metric-value btn btn-link p-0 m-0" style="font-size: 1.17rem; font-weight:700; color:inherit; background:none; border:none; box-shadow:none; text-decoration:none;">
+            OK
+          </button>
         </div>
       </div>
     </div>
@@ -220,13 +219,35 @@
       </div>
     </div>
   </div>
-
+  <!-- SLA Status Modal - UPDATED THEME -->
+  <div class="modal fade" id="slaStatusModal" tabindex="-1" aria-labelledby="slaStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="
+        background: linear-gradient(135deg, #232946cc 0%, #5433ffcc 100%);
+        border-radius: 22px;
+        border: 2.5px solid #24c6dc77;
+        box-shadow: 0 4px 32px 0 rgba(36,198,220,0.22), 0 2px 7px 0 rgba(84,51,255,0.17);
+        backdrop-filter: blur(12px) saturate(120%);
+        color: #eaf6fb;
+      ">
+        <div class="modal-header" style="border-bottom:1px solid #24c6dc22; background:rgba(84,51,255,0.14); border-top-left-radius:20px;border-top-right-radius:20px;">
+          <h5 class="modal-title" id="slaStatusModalLabel" style="font-weight:700;color:#fff;">Service Level Status</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter:invert(1)"></button>
+        </div>
+        <div class="modal-body" id="slaStatusModalBody" style="font-size:1.12rem; color:#eaf6fb;">
+          <!-- Content will be set by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     let tempCSV = [['Device ID', 'Timestamp', 'Temperature']];
     let humCSV = [['Device ID', 'Timestamp', 'Humidity']];
     let breachCSV = [['Device ID', 'Timestamp', 'Temperature', 'Humidity', 'Status']];
 let isGuest = false;
-// Check guest user at page load
+let lastSLAState = { breached: 0, total: 0, places: [] }; // For modal
+
 fetch('/auth/userinfo').then(res => res.json()).then(user => {
   isGuest = user.type === 'guest';
 });
@@ -323,7 +344,6 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
   }
 }
 
-
     // Animate values with counting effect
     function animateValue(element, start, end, duration, suffix = '') {
       if (start === end) return;
@@ -364,8 +384,20 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
         const breaches = await breachRes.json();
 
         let breachRows = '';
+        let affectedPlaces = new Set();
+
         breaches.forEach(entry => {
           breachCSV.push([entry.device_id, entry.timestamp, entry.temperature, entry.humidity, entry.status]);
+          // Try to match place name
+          let matchedPlace = '';
+          for (const [ts, place] of Object.entries(placeLabels)) {
+            if (entry.timestamp.includes(ts)) {
+              matchedPlace = place;
+              break;
+            }
+          }
+          if (entry.place_name) matchedPlace = entry.place_name;
+          if (matchedPlace) affectedPlaces.add(matchedPlace);
           breachRows += `
             <tr>
               <td><strong>${entry.device_id}</strong></td>
@@ -507,14 +539,22 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
 
         animateValue(deviceElement, 0, totalDevices, 800);
 
-        const slaStatusElement = document.getElementById("sla-status");
+        // SLA Status: update button and modal state
+        const slaStatusBtn = document.getElementById("sla-status-btn");
         if (slaBreached > 0) {
-          slaStatusElement.innerHTML = '<span class="status-breached">BREACHED</span>';
+          slaStatusBtn.innerHTML = '<span class="status-breached">BREACHED</span>';
           document.getElementById("sla-alert").style.display = 'block';
           document.getElementById("sla-alert").innerHTML = `⚠️ <strong>SLA BREACH DETECTED:</strong> ${slaBreached} anomalies found across your IoT network.`;
         } else {
-          slaStatusElement.innerHTML = '<span class="status-ok">OK</span>';
+          slaStatusBtn.innerHTML = '<span class="status-ok">OK</span>';
+          document.getElementById("sla-alert").style.display = 'none';
         }
+        // Track current SLA state for modal
+        lastSLAState = {
+          breached: slaBreached,
+          total: totalReadings,
+          places: Array.from(affectedPlaces)
+        };
 
         // Enhanced chart options with animations
         const chartOptions = {
@@ -614,7 +654,7 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
         attachCanvasClickHandler(window.tempChartObj, allTimestamps);
         attachCanvasClickHandler(window.humChartObj, allTimestamps);
 
-        // Enhanced pie chart with gradient colors
+        // Enhanced pie chart with improved compliance/breach colors
         new Chart(document.getElementById('slaPieChart').getContext('2d'), {
           type: 'doughnut',
           data: {
@@ -622,8 +662,8 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
             datasets: [{
               data: pieData,
               backgroundColor: [
-                'linear-gradient(135deg, #10b981, #059669)',
-                'linear-gradient(135deg, #ef4444, #dc2626)'
+                "#10b981", // green for compliant
+                "#e1495d"  // red for breached
               ],
               borderWidth: 0,
               cutout: '65%',
@@ -696,6 +736,43 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
       document.getElementById("latest-hum").innerHTML = '<div class="loading-skeleton"></div>';
       document.getElementById("device-count").innerHTML = '<div class="loading-skeleton"></div>';
     }
+
+    // SLA STATUS MODAL INTERACTION
+    document.addEventListener('DOMContentLoaded', function() {
+      const slaStatusBtn = document.getElementById("sla-status-btn");
+      slaStatusBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const modalBody = document.getElementById('slaStatusModalBody');
+        if (lastSLAState.breached === 0) {
+          modalBody.innerHTML = `
+            <div style="color:#10b981;font-size:1.14em;font-weight:600;">
+              <span style="font-size:2em;">✅</span><br>
+              All conditions are within recommended range.<br>
+              <span style="opacity:.8;font-weight:400;">No SLA breaches detected for the Main Library.</span>
+            </div>
+          `;
+        } else {
+          let places = lastSLAState.places && lastSLAState.places.length ? lastSLAState.places.join(', ') : '';
+          modalBody.innerHTML = `
+            <div style="color:#e1495d;font-size:1.13em;font-weight:600;">
+              <span style="font-size:2em;">⚠️</span><br>
+              Attention Required: SLA Breached!
+            </div>
+            <div style="margin:13px 0 0 0;">
+              <b>${lastSLAState.breached}</b> readings exceeded the comfort threshold.
+              ${places ? `<br><span style="color:#fbbf24;">Affected location(s): ${places}</span>` : ''}
+              <br>
+              <span style="font-size:1.02em;">High temperature or humidity was detected.</span>
+            </div>
+            <div style="margin-top:17px;font-size:0.99em;color:#9ce7fd;">
+              Please check HVAC systems or report to the facility manager.
+            </div>
+          `;
+        }
+        let modal = new bootstrap.Modal(document.getElementById('slaStatusModal'));
+        modal.show();
+      });
+    });
 
     // Add click effects to buttons
     document.addEventListener('click', function(e) {

@@ -3,6 +3,7 @@ const router = express.Router();
 const path = require('path');
 const db = require('../mqtt/db');
 
+
 router.get('/dashboard/sigfox1', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/dashboard-sigfox1.html'));
 });
@@ -66,6 +67,10 @@ router.post('/api/sigfox1', (req, res) => {
   const timestamp = new Date();
   const created_date = new Date();
 
+  // SLA thresholds (edit these if needed)
+  const TEMP_MAX = 32;
+  const HUMIDITY_MAX = 70;
+
   // Find device numeric id
   db.query('SELECT id FROM devices WHERE device_id = ?', [device_id], (err, rows) => {
     if (err || rows.length === 0) {
@@ -84,11 +89,33 @@ router.post('/api/sigfox1', (req, res) => {
           console.error("Insert error:", err);
           return res.status(500).json({ error: "Insert failed" });
         }
+
+        // SLA breach check
+        if (temperature > TEMP_MAX || humidity > HUMIDITY_MAX) {
+          const breachStatus = [];
+          if (temperature > TEMP_MAX) breachStatus.push('High Temp');
+          if (humidity > HUMIDITY_MAX) breachStatus.push('High Humidity');
+          const statusText = breachStatus.join(' & ');
+
+          db.query(
+            `INSERT INTO sla_breaches (device_id, timestamp, temperature, humidity, status)
+             VALUES (?, ?, ?, ?, ?)`,
+            [devId, timestamp, temperature, humidity, statusText],
+            (err2) => {
+              if (err2) {
+                console.error("Insert SLA breach error:", err2);
+              }
+              // Continue as normal regardless of SLA breach insert error
+            }
+          );
+        }
+
         res.json({ success: true, id: result.insertId });
       }
     );
   });
 });
+
 
 // --- PATCH place name for a reading ---
 router.patch('/api/data/sigfox1/:id/place', (req, res) => {
