@@ -241,10 +241,10 @@
     </div>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    let tempCSV = [['Device ID', 'Timestamp', 'Temperature']];
-    let humCSV = [['Device ID', 'Timestamp', 'Humidity']];
-    let breachCSV = [['Device ID', 'Timestamp', 'Temperature', 'Humidity', 'Status']];
+<script>
+let tempCSV = [['Device ID', 'Timestamp', 'Temperature']];
+let humCSV = [['Device ID', 'Timestamp', 'Humidity']];
+let breachCSV = [['Device ID', 'Timestamp', 'Temperature', 'Humidity', 'Status']];
 let isGuest = false;
 let lastSLAState = { breached: 0, total: 0, places: [] }; // For modal
 
@@ -252,72 +252,75 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
   isGuest = user.type === 'guest';
 });
 
-    // PLACE: Place annotation storage
-    const placeLabels = {}; // timestamp → place
-    const pointIdMap = {};  // timestamp → sensor_data.id
+// -- Fetch thresholds from backend for sigfox1 --
+async function getThresholds() {
+  const res = await fetch('/api/sla/thresholds/sigfox1');
+  return await res.json();
+}
+// ----------------------------------------------------------------
 
-    function downloadCSV(data, filename) {
-      const csvContent = data.map(row => row.join(",")).join("\n");
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", filename);
-      link.click();
+const placeLabels = {};
+const pointIdMap = {};
+
+function downloadCSV(data, filename) {
+  const csvContent = data.map(row => row.join(",")).join("\n");
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  link.click();
+}
+
+function exportTrend(type) {
+  if (type === 'temp') {
+    downloadCSV(tempCSV, 'temperature_data.csv');
+  } else if (type === 'hum') {
+    downloadCSV(humCSV, 'humidity_data.csv');
+  }
+}
+
+function exportBreaches() {
+  downloadCSV(breachCSV, 'sla_breach_data.csv');
+}
+
+function showPlaceModal(currentPlace, onOk) {
+  const modal = document.getElementById('place-modal');
+  const input = document.getElementById('place-input');
+  input.value = currentPlace || '';
+  modal.style.display = 'block';
+  input.focus();
+
+  function cleanup() {
+    modal.style.display = 'none';
+    document.getElementById('place-ok').onclick = null;
+    document.getElementById('place-cancel').onclick = null;
+    input.onkeydown = null;
+  }
+
+  document.getElementById('place-ok').onclick = function() {
+    cleanup();
+    onOk(input.value);
+  };
+  document.getElementById('place-cancel').onclick = function() {
+    cleanup();
+    onOk(null);
+  };
+  input.onkeydown = function(e) {
+    if (e.key === 'Enter') {
+      cleanup();
+      onOk(input.value);
     }
-
-    function exportTrend(type) {
-      if (type === 'temp') {
-        downloadCSV(tempCSV, 'temperature_data.csv');
-      } else if (type === 'hum') {
-        downloadCSV(humCSV, 'humidity_data.csv');
-      }
+    if (e.key === 'Escape') {
+      cleanup();
+      onOk(null);
     }
+  };
+}
 
-    function exportBreaches() {
-      downloadCSV(breachCSV, 'sla_breach_data.csv');
-    }
-
-    // PLACE: Modal logic copied from Wi-Fi dashboard
-    function showPlaceModal(currentPlace, onOk) {
-      const modal = document.getElementById('place-modal');
-      const input = document.getElementById('place-input');
-      input.value = currentPlace || '';
-      modal.style.display = 'block';
-      input.focus();
-
-      function cleanup() {
-        modal.style.display = 'none';
-        document.getElementById('place-ok').onclick = null;
-        document.getElementById('place-cancel').onclick = null;
-        input.onkeydown = null;
-      }
-
-      document.getElementById('place-ok').onclick = function() {
-        cleanup();
-        onOk(input.value);
-      };
-      document.getElementById('place-cancel').onclick = function() {
-        cleanup();
-        onOk(null);
-      };
-      input.onkeydown = function(e) {
-        if (e.key === 'Enter') {
-          cleanup();
-          onOk(input.value);
-        }
-        if (e.key === 'Escape') {
-          cleanup();
-          onOk(null);
-        }
-      };
-    }
-
-    // PLACE: Chart click handler
-    function attachCanvasClickHandler(chart, labels) {
+function attachCanvasClickHandler(chart, labels) {
   const canvas = chart.canvas;
   canvas.onclick = async function(evt) {
-    // Block for guests!
     if (isGuest) {
       alert("Guest users cannot edit places.");
       return;
@@ -344,613 +347,568 @@ fetch('/auth/userinfo').then(res => res.json()).then(user => {
   }
 }
 
-    // Animate values with counting effect
-    function animateValue(element, start, end, duration, suffix = '') {
-      if (start === end) return;
-      const range = end - start;
-      const minTimer = 50;
-      let stepTime = Math.abs(Math.floor(duration / range));
-      stepTime = Math.max(stepTime, minTimer);
-      const startTime = new Date().getTime();
-      const endTime = startTime + duration;
-      let timer;
+function animateValue(element, start, end, duration, suffix = '') {
+  if (start === end) return;
+  const range = end - start;
+  const minTimer = 50;
+  let stepTime = Math.abs(Math.floor(duration / range));
+  stepTime = Math.max(stepTime, minTimer);
+  const startTime = new Date().getTime();
+  const endTime = startTime + duration;
+  let timer;
 
-      function run() {
-        const now = new Date().getTime();
-        const remaining = Math.max((endTime - now) / duration, 0);
-        const value = Math.round(end - (remaining * range));
-        element.innerHTML = value + suffix;
-        if (value == end) {
-          clearInterval(timer);
+  function run() {
+    const now = new Date().getTime();
+    const remaining = Math.max((endTime - now) / duration, 0);
+    const value = Math.round(end - (remaining * range));
+    element.innerHTML = value + suffix;
+    if (value == end) {
+      clearInterval(timer);
+    }
+  }
+
+  timer = setInterval(run, stepTime);
+  run();
+}
+
+async function fetchData() {
+  try {
+    for (const key in placeLabels) delete placeLabels[key];
+    for (const key in pointIdMap) delete pointIdMap[key];
+
+    const [sensorRes, breachRes] = await Promise.all([
+      fetch('/api/data/sigfox1'),
+      fetch('/api/breaches/sigfox1')
+    ]);
+
+    const sensorData = await sensorRes.json();
+
+    // -- CUSTOM: Min/Max breach logic using backend thresholds --
+    const thresholds = await getThresholds();
+    const { TEMP_MIN: tempMin, TEMP_MAX: tempMax, HUM_MIN: humMin, HUM_MAX: humMax } = thresholds;
+    const breaches = sensorData.filter(entry => {
+      const t = Number(entry.temperature), h = Number(entry.humidity);
+      return (t > tempMax || t < tempMin || h > humMax || h < humMin);
+    }).map(entry => {
+      const t = Number(entry.temperature), h = Number(entry.humidity);
+      let status = [];
+      if (t > tempMax) status.push("High Temp");
+      if (t < tempMin) status.push("Low Temp");
+      if (h > humMax) status.push("High Humidity");
+      if (h < humMin) status.push("Low Humidity");
+      return { ...entry, status: status.join(" & ") };
+    });
+    // -------------------------------
+
+    let breachRows = '';
+    let affectedPlaces = new Set();
+
+    breaches.forEach(entry => {
+      breachCSV.push([entry.device_id, entry.timestamp, entry.temperature, entry.humidity, entry.status]);
+      let matchedPlace = '';
+      for (const [ts, place] of Object.entries(placeLabels)) {
+        if (entry.timestamp.includes(ts)) {
+          matchedPlace = place;
+          break;
         }
       }
+      if (entry.place_name) matchedPlace = entry.place_name;
+      if (matchedPlace) affectedPlaces.add(matchedPlace);
+      breachRows += `
+        <tr>
+          <td><strong>${entry.device_id}</strong></td>
+          <td>${new Date(entry.timestamp).toLocaleString()}</td>
+          <td>${entry.temperature}°C</td>
+          <td>${entry.humidity}%</td>
+          <td><span class="status-breached">${entry.status}</span></td>
+        </tr>
+      `;
+    });
 
-      timer = setInterval(run, stepTime);
-      run();
+    if (breachRows) {
+      document.getElementById('sla-breach-table').innerHTML = breachRows;
+    } else {
+      document.getElementById('sla-breach-table').innerHTML = `<tr>
+              <td colspan="5" class="text-center text-muted">No breaches detected</td>
+            </tr>`;
     }
 
-    async function fetchData() {
-      try {
-        // PLACE: clear
-        for (const key in placeLabels) delete placeLabels[key];
-        for (const key in pointIdMap) delete pointIdMap[key];
+    const grouped = {};
+    const allTimestampsSet = new Set();
 
-        const [sensorRes, breachRes] = await Promise.all([
-          fetch('/api/data/sigfox1'),
-          fetch('/api/breaches/sigfox1')
-        ]);
+    sensorData.forEach(entry => {
+      const ts = new Date(entry.timestamp).toLocaleTimeString();
+      allTimestampsSet.add(ts);
+      if (!grouped[entry.device_id]) grouped[entry.device_id] = [];
+      grouped[entry.device_id].push({ ...entry, ts });
+      if (entry.place_name) placeLabels[ts] = entry.place_name;
+      pointIdMap[ts] = entry.id;
+    });
 
-        const sensorData = await sensorRes.json();
-        const breaches = await breachRes.json();
+    const allTimestamps = Array.from(allTimestampsSet).sort();
 
-        let breachRows = '';
-        let affectedPlaces = new Set();
+    let latestTemp = '--', latestHum = '--';
+    let totalDevices = Object.keys(grouped).length;
+    let slaBreached = breaches.length;
+    let totalReadings = sensorData.length;
 
-        breaches.forEach(entry => {
-          breachCSV.push([entry.device_id, entry.timestamp, entry.temperature, entry.humidity, entry.status]);
-          // Try to match place name
-          let matchedPlace = '';
-          for (const [ts, place] of Object.entries(placeLabels)) {
-            if (entry.timestamp.includes(ts)) {
-              matchedPlace = place;
-              break;
-            }
-          }
-          if (entry.place_name) matchedPlace = entry.place_name;
-          if (matchedPlace) affectedPlaces.add(matchedPlace);
-          breachRows += `
-            <tr>
-              <td><strong>${entry.device_id}</strong></td>
-              <td>${new Date(entry.timestamp).toLocaleString()}</td>
-              <td>${entry.temperature}°C</td>
-              <td>${entry.humidity}%</td>
-              <td><span class="status-breached">${entry.status}</span></td>
-            </tr>
-          `;
-        });
-
-        if (breachRows) {
-          document.getElementById('sla-breach-table').innerHTML = breachRows;
-        }
-
-        const grouped = {};
-        const allTimestampsSet = new Set();
-
-        sensorData.forEach(entry => {
-          const ts = new Date(entry.timestamp).toLocaleTimeString();
-          allTimestampsSet.add(ts);
-          if (!grouped[entry.device_id]) grouped[entry.device_id] = [];
-          grouped[entry.device_id].push({ ...entry, ts }); // PLACE
-          // PLACE: collect annotation info
-          if (entry.place_name) placeLabels[ts] = entry.place_name;
-          pointIdMap[ts] = entry.id;
-        });
-
-        const allTimestamps = Array.from(allTimestampsSet).sort();
-
-        let latestTemp = '--', latestHum = '--';
-        let totalDevices = Object.keys(grouped).length;
-        let slaBreached = breaches.length;
-        let totalReadings = sensorData.length;
-
-        // ========== QUICK ANALYTICS: Calculate averages ==========
-        let avgTemp = '--';
-        let avgHum = '--';
-        if (sensorData.length > 0) {
-          avgTemp = (
-            sensorData.reduce((sum, entry) => sum + Number(entry.temperature), 0) /
-            sensorData.length
-          ).toFixed(1);
-          avgHum = (
-            sensorData.reduce((sum, entry) => sum + Number(entry.humidity), 0) /
-            sensorData.length
-          ).toFixed(1);
-        }
-        // Update Quick Analytics stats
-        document.getElementById("total-readings").innerText = totalReadings;
-        document.getElementById("avg-temp").innerText = `${avgTemp}°C`;
-        document.getElementById("avg-hum").innerText = `${avgHum}%`;
-
-        // ========== END QUICK ANALYTICS ==========
-
-        const tempDatasets = [], humDatasets = [];
-        const pieLabels = ['Compliant', 'Breached'];
-        let pieData = [totalReadings - slaBreached, slaBreached];
-
-        const purpleColors = [
-          '#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe',
-          '#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe'
-        ];
-        let colorIndex = 0;
-
-        for (const device in grouped) {
-          const deviceData = grouped[device];
-          const deviceTimeMap = {};
-          deviceData.forEach(d => {
-            const ts = d.ts; // PLACE
-            deviceTimeMap[ts] = d;
-          });
-
-          const alignedTemps = allTimestamps.map(ts => deviceTimeMap[ts] ? deviceTimeMap[ts].temperature : null);
-          const alignedHums = allTimestamps.map(ts => deviceTimeMap[ts] ? deviceTimeMap[ts].humidity : null);
-
-          deviceData.forEach(entry => {
-            const ts = entry.ts; // PLACE
-            tempCSV.push([entry.device_id, ts, entry.temperature]);
-            humCSV.push([entry.device_id, ts, entry.humidity]);
-          });
-
-          tempDatasets.push({
-            label: `Device ${device}`,
-            data: alignedTemps,
-            borderColor: purpleColors[colorIndex % purpleColors.length],
-            backgroundColor: purpleColors[colorIndex % purpleColors.length] + '15',
-            tension: 0.4,
-            fill: true,
-            pointRadius: 5,
-            pointHoverRadius: 8,
-            borderWidth: 3,
-            pointBackgroundColor: purpleColors[colorIndex % purpleColors.length],
-            pointBorderColor: '#ffffff',
-            pointBorderWidth: 2,
-            pointHoverBorderWidth: 3
-          });
-
-          humDatasets.push({
-            label: `Device ${device}`,
-            data: alignedHums,
-            borderColor: purpleColors[(colorIndex + 1) % purpleColors.length],
-            backgroundColor: purpleColors[(colorIndex + 1) % purpleColors.length] + '15',
-            tension: 0.4,
-            fill: true,
-            pointRadius: 5,
-            pointHoverRadius: 8,
-            borderWidth: 3,
-            pointBackgroundColor: purpleColors[(colorIndex + 1) % purpleColors.length],
-            pointBorderColor: '#ffffff',
-            pointBorderWidth: 2,
-            pointHoverBorderWidth: 3
-          });
-
-          if (colorIndex === 0) {
-            latestTemp = alignedTemps.slice().reverse().find(v => v !== null);
-            latestHum = alignedHums.slice().reverse().find(v => v !== null);
-          }
-
-          colorIndex++;
-        }
-
-        // Animate metric updates
-        const tempElement = document.getElementById("latest-temp");
-        const humElement = document.getElementById("latest-hum");
-        const deviceElement = document.getElementById("device-count");
-
-        if (latestTemp !== '--') {
-          animateValue(tempElement, 0, parseInt(latestTemp), 1000, '°C');
-        } else {
-          tempElement.innerText = '-- °C';
-        }
-
-        if (latestHum !== '--') {
-          animateValue(humElement, 0, parseInt(latestHum), 1200, '%');
-        } else {
-          humElement.innerText = '-- %';
-        }
-
-        animateValue(deviceElement, 0, totalDevices, 800);
-
-        // SLA Status: update button and modal state
-        const slaStatusBtn = document.getElementById("sla-status-btn");
-        if (slaBreached > 0) {
-          slaStatusBtn.innerHTML = '<span class="status-breached">BREACHED</span>';
-          document.getElementById("sla-alert").style.display = 'block';
-          document.getElementById("sla-alert").innerHTML = `⚠️ <strong>SLA BREACH DETECTED:</strong> ${slaBreached} anomalies found across your IoT network.`;
-        } else {
-          slaStatusBtn.innerHTML = '<span class="status-ok">OK</span>';
-          document.getElementById("sla-alert").style.display = 'none';
-        }
-        // Track current SLA state for modal
-        lastSLAState = {
-          breached: slaBreached,
-          total: totalReadings,
-          places: Array.from(affectedPlaces)
-        };
-
-        // Enhanced chart options with animations
-        const chartOptions = {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: {
-            duration: 2000,
-            easing: 'easeInOutQuart'
-          },
-          plugins: {
-            legend: {
-              position: 'top',
-              labels: {
-                usePointStyle: true,
-                padding: 25,
-                font: { size: 13, weight: '600' },
-                color: '#374151'
-              }
-            },
-            tooltip: {
-              mode: 'index',
-              intersect: false,
-              backgroundColor: 'rgba(30, 41, 59, 0.9)',
-              titleColor: 'white',
-              bodyColor: 'white',
-              borderColor: '#8b5cf6',
-              borderWidth: 2,
-              cornerRadius: 12,
-              displayColors: true,
-              callbacks: {
-                // PLACE: Show place in tooltip
-                title: function(context) {
-                  const label = context[0].label;
-                  return '🕒 ' + label + (placeLabels[label] ? ' - ' + placeLabels[label] : '');
-                },
-                label: function(context) {
-                  return context.dataset.label + ': ' + context.formattedValue + (context.datasetIndex === 0 ? '°C' : '%');
-                }
-              }
-            },
-            datalabels: { display: false }
-          },
-          interaction: {
-            mode: 'nearest',
-            axis: 'x',
-            intersect: false
-          },
-          scales: {
-            x: {
-              grid: {
-                color: 'rgba(139, 92, 246, 0.1)',
-                borderDash: [5, 5]
-              },
-              ticks: {
-                font: { size: 12, weight: '500' },
-                color: '#6b7280'
-              }
-            },
-            y: {
-              grid: {
-                color: 'rgba(139, 92, 246, 0.1)',
-                borderDash: [5, 5]
-              },
-              ticks: {
-                font: { size: 12, weight: '500' },
-                color: '#6b7280'
-              },
-              beginAtZero: true
-            }
-          },
-          elements: {
-            point: {
-              hoverRadius: 10
-            }
-          }
-        };
-
-        // Destroy old charts before making new ones
-        if (window.tempChartObj) window.tempChartObj.destroy();
-        if (window.humChartObj) window.humChartObj.destroy();
-
-        // Create enhanced charts with animations
-        window.tempChartObj = new Chart(document.getElementById('tempChart').getContext('2d'), {
-          type: 'line',
-          data: { labels: allTimestamps, datasets: tempDatasets },
-          options: chartOptions,
-          plugins: [ChartDataLabels]
-        });
-        window.humChartObj = new Chart(document.getElementById('humChart').getContext('2d'), {
-          type: 'line',
-          data: { labels: allTimestamps, datasets: humDatasets },
-          options: chartOptions,
-          plugins: [ChartDataLabels]
-        });
-
-        // PLACE: Attach chart click handler to both charts
-        attachCanvasClickHandler(window.tempChartObj, allTimestamps);
-        attachCanvasClickHandler(window.humChartObj, allTimestamps);
-
-        // Enhanced pie chart with improved compliance/breach colors
-        new Chart(document.getElementById('slaPieChart').getContext('2d'), {
-          type: 'doughnut',
-          data: {
-            labels: pieLabels,
-            datasets: [{
-              data: pieData,
-              backgroundColor: [
-                "#10b981", // green for compliant
-                "#e1495d"  // red for breached
-              ],
-              borderWidth: 0,
-              cutout: '65%',
-              borderRadius: 10,
-              hoverOffset: 15
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: {
-              animateRotate: true,
-              animateScale: true,
-              duration: 2000,
-              easing: 'easeInOutQuart'
-            },
-            plugins: {
-              legend: {
-                position: 'bottom',
-                labels: {
-                  usePointStyle: true,
-                  padding: 25,
-                  font: { size: 14, weight: '600' },
-                  color: '#374151'
-                }
-              },
-              tooltip: {
-                backgroundColor: 'rgba(30, 41, 59, 0.9)',
-                titleColor: 'white',
-                bodyColor: 'white',
-                borderColor: '#8b5cf6',
-                borderWidth: 2,
-                cornerRadius: 12,
-                callbacks: {
-                  label: function(context) {
-                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                    const percentage = ((context.parsed * 100) / total).toFixed(1);
-                    return context.label + ': ' + context.formattedValue + ' readings (' + percentage + '%)';
-                  }
-                }
-              },
-              datalabels: {
-                color: '#fff',
-                font: { size: 16, weight: 'bold' },
-                formatter: (value, ctx) => {
-                  const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-                  const percentage = ((value * 100) / total).toFixed(1);
-                  return percentage + '%';
-                },
-                anchor: 'center',
-                align: 'center'
-              }
-            },
-            onHover: (event, activeElements) => {
-              event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
-            }
-          },
-          plugins: [ChartDataLabels]
-        });
-
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        // Show loading skeletons or error state
-        showErrorState();
-      }
+    let avgTemp = '--';
+    let avgHum = '--';
+    if (sensorData.length > 0) {
+      avgTemp = (
+        sensorData.reduce((sum, entry) => sum + Number(entry.temperature), 0) /
+        sensorData.length
+      ).toFixed(1);
+      avgHum = (
+        sensorData.reduce((sum, entry) => sum + Number(entry.humidity), 0) /
+        sensorData.length
+      ).toFixed(1);
     }
+    document.getElementById("total-readings").innerText = totalReadings;
+    document.getElementById("avg-temp").innerText = `${avgTemp}°C`;
+    document.getElementById("avg-hum").innerText = `${avgHum}%`;
 
-    function showErrorState() {
-      document.getElementById("latest-temp").innerHTML = '<div class="loading-skeleton"></div>';
-      document.getElementById("latest-hum").innerHTML = '<div class="loading-skeleton"></div>';
-      document.getElementById("device-count").innerHTML = '<div class="loading-skeleton"></div>';
-    }
+    const tempDatasets = [], humDatasets = [];
+    const pieLabels = ['Compliant', 'Breached'];
+    let pieData = [totalReadings - slaBreached, slaBreached];
 
-    // SLA STATUS MODAL INTERACTION
-    document.addEventListener('DOMContentLoaded', function() {
-      const slaStatusBtn = document.getElementById("sla-status-btn");
-      slaStatusBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        const modalBody = document.getElementById('slaStatusModalBody');
-        if (lastSLAState.breached === 0) {
-          modalBody.innerHTML = `
-            <div style="color:#10b981;font-size:1.14em;font-weight:600;">
-              <span style="font-size:2em;">✅</span><br>
-              All conditions are within recommended range.<br>
-              <span style="opacity:.8;font-weight:400;">No SLA breaches detected for the Main Library.</span>
-            </div>
-          `;
-        } else {
-          let places = lastSLAState.places && lastSLAState.places.length ? lastSLAState.places.join(', ') : '';
-          modalBody.innerHTML = `
-            <div style="color:#e1495d;font-size:1.13em;font-weight:600;">
-              <span style="font-size:2em;">⚠️</span><br>
-              Attention Required: SLA Breached!
-            </div>
-            <div style="margin:13px 0 0 0;">
-              <b>${lastSLAState.breached}</b> readings exceeded the comfort threshold.
-              ${places ? `<br><span style="color:#fbbf24;">Affected location(s): ${places}</span>` : ''}
-              <br>
-              <span style="font-size:1.02em;">High temperature or humidity was detected.</span>
-            </div>
-            <div style="margin-top:17px;font-size:0.99em;color:#9ce7fd;">
-              Please check HVAC systems or report to the facility manager.
-            </div>
-          `;
-        }
-        let modal = new bootstrap.Modal(document.getElementById('slaStatusModal'));
-        modal.show();
+    const purpleColors = [
+      '#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe',
+      '#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe'
+    ];
+    let colorIndex = 0;
+
+    for (const device in grouped) {
+      const deviceData = grouped[device];
+      const deviceTimeMap = {};
+      deviceData.forEach(d => {
+        const ts = d.ts;
+        deviceTimeMap[ts] = d;
       });
-    });
 
-    // Add click effects to buttons
-    document.addEventListener('click', function(e) {
-      if (e.target.classList.contains('export-btn')) {
-        // Create ripple effect
-        const button = e.target;
-        const ripple = document.createElement('span');
-        const rect = button.getBoundingClientRect();
-        const size = Math.max(rect.width, rect.height);
-        const x = e.clientX - rect.left - size / 2;
-        const y = e.clientY - rect.top - size / 2;
-        ripple.style.width = ripple.style.height = size + 'px';
-        ripple.style.left = x + 'px';
-        ripple.style.top = y + 'px';
-        ripple.classList.add('ripple');
-        button.appendChild(ripple);
-        setTimeout(() => { ripple.remove(); }, 600);
+      const alignedTemps = allTimestamps.map(ts => deviceTimeMap[ts] ? deviceTimeMap[ts].temperature : null);
+      const alignedHums = allTimestamps.map(ts => deviceTimeMap[ts] ? deviceTimeMap[ts].humidity : null);
+
+      deviceData.forEach(entry => {
+        const ts = entry.ts;
+        tempCSV.push([entry.device_id, ts, entry.temperature]);
+        humCSV.push([entry.device_id, ts, entry.humidity]);
+      });
+
+      tempDatasets.push({
+        label: `Device ${device}`,
+        data: alignedTemps,
+        borderColor: purpleColors[colorIndex % purpleColors.length],
+        backgroundColor: purpleColors[colorIndex % purpleColors.length] + '15',
+        tension: 0.4,
+        fill: true,
+        pointRadius: 5,
+        pointHoverRadius: 8,
+        borderWidth: 3,
+        pointBackgroundColor: purpleColors[colorIndex % purpleColors.length],
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 2,
+        pointHoverBorderWidth: 3
+      });
+
+      humDatasets.push({
+        label: `Device ${device}`,
+        data: alignedHums,
+        borderColor: purpleColors[(colorIndex + 1) % purpleColors.length],
+        backgroundColor: purpleColors[(colorIndex + 1) % purpleColors.length] + '15',
+        tension: 0.4,
+        fill: true,
+        pointRadius: 5,
+        pointHoverRadius: 8,
+        borderWidth: 3,
+        pointBackgroundColor: purpleColors[(colorIndex + 1) % purpleColors.length],
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 2,
+        pointHoverBorderWidth: 3
+      });
+
+      if (colorIndex === 0) {
+        latestTemp = alignedTemps.slice().reverse().find(v => v !== null);
+        latestHum = alignedHums.slice().reverse().find(v => v !== null);
       }
-    });
 
-    // Add intersection observer for scroll animations
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px'
+      colorIndex++;
+    }
+
+    // Animate metric updates
+    const tempElement = document.getElementById("latest-temp");
+    const humElement = document.getElementById("latest-hum");
+    const deviceElement = document.getElementById("device-count");
+
+    if (latestTemp !== '--') {
+      animateValue(tempElement, 0, parseInt(latestTemp), 1000, '°C');
+    } else {
+      tempElement.innerText = '-- °C';
+    }
+
+    if (latestHum !== '--') {
+      animateValue(humElement, 0, parseInt(latestHum), 1200, '%');
+    } else {
+      humElement.innerText = '-- %';
+    }
+
+    animateValue(deviceElement, 0, totalDevices, 800);
+
+    // SLA Status: update button and modal state
+    const slaStatusBtn = document.getElementById("sla-status-btn");
+    if (slaBreached > 0) {
+      slaStatusBtn.innerHTML = '<span class="status-breached">BREACHED</span>';
+      document.getElementById("sla-alert").style.display = 'block';
+      document.getElementById("sla-alert").innerHTML = `⚠️ <strong>SLA BREACH DETECTED:</strong> ${slaBreached} anomalies found across your IoT network.`;
+    } else {
+      slaStatusBtn.innerHTML = '<span class="status-ok">OK</span>';
+      document.getElementById("sla-alert").style.display = 'none';
+    }
+    lastSLAState = {
+      breached: slaBreached,
+      total: totalReadings,
+      places: Array.from(affectedPlaces)
     };
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.style.opacity = '1';
-          entry.target.style.transform = 'translateY(0)';
+
+    const chartOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: {
+        duration: 2000,
+        easing: 'easeInOutQuart'
+      },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            usePointStyle: true,
+            padding: 25,
+            font: { size: 13, weight: '600' },
+            color: '#374151'
+          }
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          backgroundColor: 'rgba(30, 41, 59, 0.9)',
+          titleColor: 'white',
+          bodyColor: 'white',
+          borderColor: '#8b5cf6',
+          borderWidth: 2,
+          cornerRadius: 12,
+          displayColors: true,
+          callbacks: {
+            title: function(context) {
+              const label = context[0].label;
+              return '🕒 ' + label + (placeLabels[label] ? ' - ' + placeLabels[label] : '');
+            },
+            label: function(context) {
+              return context.dataset.label + ': ' + context.formattedValue + (context.datasetIndex === 0 ? '°C' : '%');
+            }
+          }
+        },
+        datalabels: { display: false }
+      },
+      interaction: {
+        mode: 'nearest',
+        axis: 'x',
+        intersect: false
+      },
+      scales: {
+        x: {
+          grid: {
+            color: 'rgba(139, 92, 246, 0.1)',
+            borderDash: [5, 5]
+          },
+          ticks: {
+            font: { size: 12, weight: '500' },
+            color: '#6b7280'
+          }
+        },
+        y: {
+          grid: {
+            color: 'rgba(139, 92, 246, 0.1)',
+            borderDash: [5, 5]
+          },
+          ticks: {
+            font: { size: 12, weight: '500' },
+            color: '#6b7280'
+          },
+          beginAtZero: true
         }
-      });
-    }, observerOptions);
-    document.querySelectorAll('.chart-card, .pie-chart-container').forEach(card => {
-      card.style.opacity = '0';
-      card.style.transform = 'translateY(30px)';
-      observer.observe(card);
-    });
-
-    // Add page visibility API for auto-refresh
-    let refreshInterval;
-    function startAutoRefresh() {
-      refreshInterval = setInterval(fetchData, 30000);
-    }
-    function stopAutoRefresh() {
-      if (refreshInterval) {
-        clearInterval(refreshInterval);
-      }
-    }
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        stopAutoRefresh();
-      } else {
-        startAutoRefresh();
-      }
-    });
-
-    // Initialize dashboard with loading animation
-    document.addEventListener('DOMContentLoaded', () => {
-      // Add staggered animation to metric cards
-      const metricCards = document.querySelectorAll('.metric-card');
-      metricCards.forEach((card, index) => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(30px)';
-        setTimeout(() => {
-          card.style.opacity = '1';
-          card.style.transform = 'translateY(0)';
-        }, index * 100);
-      });
-      // Start data fetching and auto-refresh
-      fetchData();
-      startAutoRefresh();
-    });
-
-    // Add CSS for ripple effect and filter-btn
-    const style = document.createElement('style');
-    style.textContent = `
-      .ripple {
-        position: absolute;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.3);
-        transform: scale(0);
-        animation: ripple-animation 0.6s linear;
-        pointer-events: none;
-      }
-      @keyframes ripple-animation {
-        to {
-          transform: scale(4);
-          opacity: 0;
-        }
-      }
-      .filter-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        background: linear-gradient(90deg,#24c6dc,#5433ff);
-        color: #fff;
-        font-weight: 600;
-        font-size: 1.04em;
-        padding: 8px 22px 8px 16px;
-        border: none;
-        border-radius: 13px;
-        box-shadow: 0 4px 20px 0 rgba(36,198,220,0.12), 0 2px 7px 0 rgba(84,51,255,0.07);
-        transition: background .15s, box-shadow .13s, transform .08s;
-        cursor: pointer;
-        text-decoration: none;
-        margin-left: 14px;
-        margin-right: 2px;
-      }
-      .filter-btn:hover, .filter-btn:focus {
-        background: linear-gradient(90deg,#5433ff,#24c6dc);
-        box-shadow: 0 6px 24px 0 rgba(84,51,255,0.14), 0 3px 12px 0 rgba(36,198,220,0.13);
-        color: #f9fafc;
-        transform: translateY(-2px) scale(1.04);
-        text-decoration: none;
-      }
-      .filter-icon {
-        font-size: 1.17em;
-        margin-right: 2px;
-      }
-      @media (max-width: 700px) {
-        .filter-btn {
-          width: 100%;
-          justify-content: center;
-          font-size: 1.04em;
-          margin: 12px 0 0 0;
-          padding: 12px 0;
-          border-radius: 12px;
+      },
+      elements: {
+        point: {
+          hoverRadius: 10
         }
       }
-      /* ----------- NEW for Quick Analytics (match Sigfox 2) ----------- */
-      .stats-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 18px 16px;
-        margin-top: 20px;
-      }
-      .stat-item {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        background: rgba(245,245,255,0.07);
-        border-radius: 12px;
-        padding: 13px 18px 11px 18px;
-        font-size: 1.05rem;
-        box-shadow: 0 1px 4px rgba(20,20,50,0.07);
-      }
-      .stat-label {
-        font-size: 0.96rem;
-        font-weight: 500;
-        color: #818cf8;
-        margin-bottom: 3px;
-      }
-      .stat-value {
-        font-weight: 700;
-        font-size: 1.14rem;
-        color: #3f3cbb;
-        margin-left: 1px;
-      }
-      /* --------------------------------------------------------------- */
-    `;
-    document.head.appendChild(style);
-  </script>
+    };
 
-<script>
-fetch('/auth/userinfo').then(res => res.json()).then(user => {
-  if(user.type === 'guest') {
-    document.querySelectorAll('input, select, textarea, button').forEach(el => {
-      if (
-        el.classList.contains('btn-export') ||
-        el.closest('.table-responsive')
-      ) {
-        el.disabled = true;
-      }
+    if (window.tempChartObj) window.tempChartObj.destroy();
+    if (window.humChartObj) window.humChartObj.destroy();
+
+    window.tempChartObj = new Chart(document.getElementById('tempChart').getContext('2d'), {
+      type: 'line',
+      data: { labels: allTimestamps, datasets: tempDatasets },
+      options: chartOptions,
+      plugins: [ChartDataLabels]
     });
-    
+    window.humChartObj = new Chart(document.getElementById('humChart').getContext('2d'), {
+      type: 'line',
+      data: { labels: allTimestamps, datasets: humDatasets },
+      options: chartOptions,
+      plugins: [ChartDataLabels]
+    });
+
+    attachCanvasClickHandler(window.tempChartObj, allTimestamps);
+    attachCanvasClickHandler(window.humChartObj, allTimestamps);
+
+    new Chart(document.getElementById('slaPieChart').getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: pieLabels,
+        datasets: [{
+          data: pieData,
+          backgroundColor: [
+            "#10b981",
+            "#e1495d"
+          ],
+          borderWidth: 0,
+          cutout: '65%',
+          borderRadius: 10,
+          hoverOffset: 15
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: {
+          animateRotate: true,
+          animateScale: true,
+          duration: 2000,
+          easing: 'easeInOutQuart'
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              usePointStyle: true,
+              padding: 25,
+              font: { size: 14, weight: '600' },
+              color: '#374151'
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(30, 41, 59, 0.9)',
+            titleColor: 'white',
+            bodyColor: 'white',
+            borderColor: '#8b5cf6',
+            borderWidth: 2,
+            cornerRadius: 12,
+            callbacks: {
+              label: function(context) {
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const percentage = ((context.parsed * 100) / total).toFixed(1);
+                return context.label + ': ' + context.formattedValue + ' readings (' + percentage + '%)';
+              }
+            }
+          },
+          datalabels: {
+            color: '#fff',
+            font: { size: 16, weight: 'bold' },
+            formatter: (value, ctx) => {
+              const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = ((value * 100) / total).toFixed(1);
+              return percentage + '%';
+            },
+            anchor: 'center',
+            align: 'center'
+          }
+        },
+        onHover: (event, activeElements) => {
+          event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
+        }
+      },
+      plugins: [ChartDataLabels]
+    });
+
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    showErrorState();
+  }
+}
+
+function showErrorState() {
+  document.getElementById("latest-temp").innerHTML = '<div class="loading-skeleton"></div>';
+  document.getElementById("latest-hum").innerHTML = '<div class="loading-skeleton"></div>';
+  document.getElementById("device-count").innerHTML = '<div class="loading-skeleton"></div>';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const slaStatusBtn = document.getElementById("sla-status-btn");
+  if (slaStatusBtn) {
+    slaStatusBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      window.location.href = "/dashboard/sla-threshold.html";
+    });
   }
 });
+
+// Add click effects to buttons
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('export-btn')) {
+    const button = e.target;
+    const ripple = document.createElement('span');
+    const rect = button.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
+    ripple.style.width = ripple.style.height = size + 'px';
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+    ripple.classList.add('ripple');
+    button.appendChild(ripple);
+    setTimeout(() => { ripple.remove(); }, 600);
+  }
+});
+
+// Intersection observer for scroll animations
+const observerOptions = {
+  threshold: 0.1,
+  rootMargin: '0px 0px -50px 0px'
+};
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.style.opacity = '1';
+      entry.target.style.transform = 'translateY(0)';
+    }
+  });
+}, observerOptions);
+document.querySelectorAll('.chart-card, .pie-chart-container').forEach(card => {
+  card.style.opacity = '0';
+  card.style.transform = 'translateY(30px)';
+  observer.observe(card);
+});
+
+let refreshInterval;
+function startAutoRefresh() {
+  refreshInterval = setInterval(fetchData, 30000);
+}
+function stopAutoRefresh() {
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+  }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    stopAutoRefresh();
+  } else {
+    startAutoRefresh();
+  }
+});
+
+// Initialize dashboard with loading animation
+document.addEventListener('DOMContentLoaded', () => {
+  const metricCards = document.querySelectorAll('.metric-card');
+  metricCards.forEach((card, index) => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(30px)';
+    setTimeout(() => {
+      card.style.opacity = '1';
+      card.style.transform = 'translateY(0)';
+    }, index * 100);
+  });
+  fetchData();
+  startAutoRefresh();
+});
+
+// Add CSS for ripple effect and filter-btn
+const style = document.createElement('style');
+style.textContent = `
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(0);
+    animation: ripple-animation 0.6s linear;
+    pointer-events: none;
+  }
+  @keyframes ripple-animation {
+    to {
+      transform: scale(4);
+      opacity: 0;
+    }
+  }
+  .filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(90deg,#24c6dc,#5433ff);
+    color: #fff;
+    font-weight: 600;
+    font-size: 1.04em;
+    padding: 8px 22px 8px 16px;
+    border: none;
+    border-radius: 13px;
+    box-shadow: 0 4px 20px 0 rgba(36,198,220,0.12), 0 2px 7px 0 rgba(84,51,255,0.07);
+    transition: background .15s, box-shadow .13s, transform .08s;
+    cursor: pointer;
+    text-decoration: none;
+    margin-left: 14px;
+    margin-right: 2px;
+  }
+  .filter-btn:hover, .filter-btn:focus {
+    background: linear-gradient(90deg,#5433ff,#24c6dc);
+    box-shadow: 0 6px 24px 0 rgba(84,51,255,0.14), 0 3px 12px 0 rgba(36,198,220,0.13);
+    color: #f9fafc;
+    transform: translateY(-2px) scale(1.04);
+    text-decoration: none;
+  }
+  .filter-icon {
+    font-size: 1.17em;
+    margin-right: 2px;
+  }
+  @media (max-width: 700px) {
+    .filter-btn {
+      width: 100%;
+      justify-content: center;
+      font-size: 1.04em;
+      margin: 12px 0 0 0;
+      padding: 12px 0;
+      border-radius: 12px;
+    }
+  }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 16px;
+    margin-top: 20px;
+  }
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    background: rgba(245,245,255,0.07);
+    border-radius: 12px;
+    padding: 13px 18px 11px 18px;
+    font-size: 1.05rem;
+    box-shadow: 0 1px 4px rgba(20,20,50,0.07);
+  }
+  .stat-label {
+    font-size: 0.96rem;
+    font-weight: 500;
+    color: #818cf8;
+    margin-bottom: 3px;
+  }
+  .stat-value {
+    font-weight: 700;
+    font-size: 1.14rem;
+    color: #3f3cbb;
+    margin-left: 1px;
+  }
+`;
+document.head.appendChild(style);
 </script>
 </body>
 </html>
