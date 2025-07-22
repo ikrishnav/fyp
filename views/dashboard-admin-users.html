@@ -5,6 +5,7 @@
   <title>Admin User Management</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@800;700;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
   <style>
     body {
       min-height: 100vh;
@@ -26,7 +27,7 @@
       padding: 54px 42px 38px 42px;
       max-width: 720px;
       width: 98vw;
-      margin: 80px auto 0 auto;
+      margin: 60px auto 0 auto;    /* More top margin for better spacing */
       position: relative;
       color: #f3f6fa;
       display: flex;
@@ -40,7 +41,8 @@
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      margin-bottom: 13px;
+      margin-bottom: 21px;   /* More spacing below title */
+      margin-top: 10px;      /* Extra top space */
       display: flex;
       align-items: center;
       gap: 13px;
@@ -65,9 +67,10 @@
       margin-bottom: 12px;
       display: flex;
       flex-wrap: wrap;
-      gap: 14px 1%;
+      gap: 16px 1%;    /* More vertical gap */
       align-items: center;
       justify-content: center;
+      margin-top: 12px;   /* Gap above form */
     }
     form#add-user-form > * {
       flex: 1 1 170px;
@@ -90,6 +93,53 @@
       background: rgba(48,54,94,0.20);
       color: #fff;
     }
+    /* --- Choices.js Custom Styling for Dark Mode --- */
+    .choices {
+      width: 100%;
+      margin-bottom: 0;
+    }
+    .choices__inner {
+      background: #232b49 !important;
+      color: #f0f3fa !important;
+      border-radius: 12px !important;
+      border: 1.5px solid #273057 !important;
+      min-height: 44px;
+      font-size: 1.09em;
+      box-shadow: 0 0 0 2px #1db8a610;
+    }
+    .choices__list--dropdown, .choices__list[aria-expanded] {
+      background: #1f2340 !important;
+      color: #f0f3fa;
+      border-radius: 12px !important;
+      border: 1.5px solid #4a90e2;
+      margin-top: 2px;
+      box-shadow: 0 4px 20px #25e6e620;
+    }
+    .choices__item--choice {
+      color: #e7ecfe;
+      background: transparent;
+      border-radius: 7px;
+      padding-left: 16px !important;
+      transition: background .16s, color .16s;
+    }
+    .choices__item--choice.is-selected,
+    .choices__item--choice.is-highlighted {
+      background: #34478b !important;
+      color: #fff !important;
+    }
+    .choices__placeholder {
+      color: #b8c7e5 !important;
+      opacity: 0.85;
+    }
+    .choices[data-type*=select-one] .choices__inner {
+      padding-bottom: 0;
+    }
+    /* Hide built-in arrow, style your own if you wish */
+    .choices[data-type*=select-one]::after {
+      border-color: #8fdcff transparent transparent;
+    }
+    /* --- End Choices.js Custom Styling --- */
+
     .btn-success {
       background: linear-gradient(90deg,#25e6e6 0%, #4a90e2 100%);
       color: #fff;
@@ -103,6 +153,7 @@
       letter-spacing: 0.01em;
       outline: none;
       width: 100%;
+      margin-top: 7px;
     }
     .btn-success:hover {
       background: linear-gradient(90deg,#4a90e2 0%, #25e6e6 100%);
@@ -118,7 +169,7 @@
       border-radius: 15px;
       overflow: hidden;
       background: rgba(36,44,82,0.91);
-      margin-top: 16px;
+      margin-top: 22px;
       box-shadow: 0 10px 36px #25e6e60e;
       color: #e7eaff;
       border-collapse: separate;
@@ -206,7 +257,6 @@
 </head>
 <body>
   <div class="user-card">
-    <!-- Keep your back button as-is: -->
     <a href="/dashboard/admin" style="
       position: absolute;
       top: 38px;
@@ -233,13 +283,18 @@
     <form id="add-user-form" class="row g-2 align-items-center">
       <input type="email" name="email" class="form-control" placeholder="User Email" required>
       <input type="password" name="password" class="form-control" placeholder="Password" required>
-      <select name="role" class="form-select" required>
-        <option value="">Role...</option>
-        <option value="sigfox1">Sigfox1</option>
-        <option value="sigfox2">Sigfox2</option>
-        <option value="wifi">Wi-Fi</option>
-        <option value="bluetooth">Bluetooth</option>
-      </select>
+      <div class="form-group dropdown-container shadow-lg p-4 bg-glass rounded-4" style="margin-bottom:0;">
+        <label for="role" class="form-label fw-semibold mb-2" style="color:#b6cfff;">
+          <i class="bi bi-geo-alt-fill me-2"></i>Choose Location
+        </label>
+        <select id="role" name="role" class="form-select" required>
+          <option value="">Select Role...</option>
+          <option value="sigfox1">Main Library</option>
+          <option value="sigfox2">MRT Station Waiting Area</option>
+          <option value="wifi">Community Center</option>
+          <option value="bluetooth">Polyclinic Lobby</option>
+        </select>
+      </div>
       <button class="btn btn-success" type="submit">Add User</button>
     </form>
     <div id="user-alert" class="mt-2"></div>
@@ -259,7 +314,26 @@
       </table>
     </div>
   </div>
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
   <script>
+    const ROLE_DISPLAY_MAP = {
+      sigfox1: "Main Library",
+      sigfox2: "MRT Station Waiting Area",
+      wifi: "Community Center",
+      bluetooth: "Polyclinic Lobby"
+    };
+    // --- Choices.js Enhancement for Select ---
+    document.addEventListener('DOMContentLoaded', function() {
+      new Choices('#role', {
+        searchEnabled: false,
+        itemSelectText: '',
+        shouldSort: false,
+        classNames: {
+          containerOuter: 'choices custom-choices'
+        }
+      });
+    });
+
     // Fetch users and render table
     async function loadUsers() {
       const tbody = document.getElementById('users-table-body');
@@ -281,7 +355,7 @@
         tbody.innerHTML += `
           <tr id="user-row-${u.id}">
             <td>${u.email}</td>
-            <td>${u.role}</td>
+            <td>${ROLE_DISPLAY_MAP[u.role] || u.role}</td>
             <td>
               <span class="badge ${u.is_active ? 'bg-success' : 'bg-secondary'}">
                 ${u.is_active ? 'Active' : 'Inactive'}

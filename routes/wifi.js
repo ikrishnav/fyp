@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const db = require('../mqtt/db');
 
-
 // ✅ Fetch WiFi sensor data with place name
 router.get('/api/data/wifi', (req, res) => {
   const query = `
@@ -28,16 +27,17 @@ router.get('/api/breaches/wifi', (req, res) => {
   const query = `
     SELECT d.device_id, s.timestamp, s.temperature, s.humidity,
            CASE
-             WHEN s.temperature > 50 THEN 'High Temperature'
-             WHEN s.humidity > 90 THEN 'High Humidity'
-             WHEN s.humidity < 10 THEN 'Low Humidity'
+             WHEN s.temperature > 33 THEN 'High Temperature'
+             WHEN s.temperature < 22 THEN 'Low Temperature'
+             WHEN s.humidity > 70 THEN 'High Humidity'
+             WHEN s.humidity < 45 THEN 'Low Humidity'
              ELSE 'Unknown'
            END AS status
     FROM sensor_data s
     JOIN devices d ON s.device_id = d.id
     JOIN device_types t ON d.device_type_id = t.id
     WHERE t.type_name = 'wifi' AND (
-      s.temperature > 50 OR s.humidity > 90 OR s.humidity < 10
+      s.temperature > 28 OR s.temperature < 22 OR s.humidity > 70 OR s.humidity < 45
     )
     ORDER BY s.timestamp DESC
     LIMIT 100
@@ -125,26 +125,19 @@ router.post('/api/data/wifi', (req, res) => {
           return res.status(500).json({ error: "Insert sensor data error" });
         }
 
-        let status = null;
-        let breach_type = null;
+        let breachStatus = [];
+        if (temperature > 28) breachStatus.push("High Temperature");
+        if (temperature < 22) breachStatus.push("Low Temperature");
+        if (humidity > 70) breachStatus.push("High Humidity");
+        if (humidity < 45) breachStatus.push("Low Humidity");
 
-        if (temperature > 50) {
-          status = "High Temp";
-          breach_type = "Temperature";
-        } else if (humidity > 90) {
-          status = "High Humidity";
-          breach_type = "Humidity";
-        } else if (humidity < 10) {
-          status = "Low Humidity";
-          breach_type = "Humidity";
-        }
-
-        if (status) {
+        if (breachStatus.length) {
+          const statusText = breachStatus.join(' & ');
           const insertBreach = `
-            INSERT INTO sla_breaches (device_id, timestamp, temperature, humidity, status, breach_type)
-            VALUES (?, FROM_UNIXTIME(?), ?, ?, ?, ?)
+            INSERT INTO sla_breaches (device_id, timestamp, temperature, humidity, status)
+            VALUES (?, FROM_UNIXTIME(?), ?, ?, ?)
           `;
-          db.query(insertBreach, [deviceDbId, timestamp, temperature, humidity, status, breach_type], (err) => {
+          db.query(insertBreach, [deviceDbId, timestamp, temperature, humidity, statusText], (err) => {
             if (err) {
               console.error("Error inserting SLA breach:", err);
             }

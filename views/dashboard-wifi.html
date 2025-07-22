@@ -14,7 +14,7 @@
 
 <body>
   <div class="container py-4">
-    <h2 class="text-center mb-5">📶 Wi-Fi Dashboard - Environmental Monitoring</h2>
+    <h2 class="text-center mb-5">🏛️ Community Center - Monitoring</h2>
 
     <div class="row text-center mb-4">
       <div class="col-md-3">
@@ -108,7 +108,13 @@
   </div>
 
 <script>
-       function showPlaceModal(currentPlace, onOk) {
+    // --- GUEST USER LOGIC (added) ---
+    let isGuest = false;
+    fetch('/auth/userinfo').then(res => res.json()).then(user => {
+      isGuest = user.type === 'guest';
+    });
+
+    function showPlaceModal(currentPlace, onOk) {
       const modal = document.getElementById('place-modal');
       const input = document.getElementById('place-input');
       input.value = currentPlace || '';
@@ -157,6 +163,12 @@
     function attachCanvasClickHandler(chart, otherChart, labels) {
       const canvas = chart.canvas;
       canvas.onclick = async function(evt) {
+        // --- GUEST BLOCK (added) ---
+        if (isGuest) {
+          alert("Guest users cannot edit places.");
+          return;
+        }
+        // ---------------------------
         const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
         if (!points.length) return;
         const pointIndex = points[0].index;
@@ -177,21 +189,6 @@
           }
         });
         return; // Prevent any further code after this inside the click handler!
-
-        if (newPlace !== null && newPlace.trim() !== "") {
-          placeLabels[ts] = newPlace;
-
-          // Update backend
-          const readingId = pointIdMap[ts];
-          if (readingId) {
-            await fetch(`/api/data/wifi/${readingId}/place`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ place_name: newPlace })
-            });
-            await fetchData(); // Instantly reloads all data & updates UI
-          }
-        }
       }
     }
 
@@ -624,8 +621,6 @@
     </div>
   </div>
 </div>
-
-
 
 </body>
 

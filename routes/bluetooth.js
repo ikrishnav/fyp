@@ -32,10 +32,11 @@ router.get('/api/breaches/bluetooth', (req, res) => {
       b.*, 
       d.device_id,
       CASE 
-        WHEN b.temperature > 50 THEN 'High Temperature'
-        WHEN b.humidity > 90 THEN 'High Humidity'
-        WHEN b.humidity < 10 THEN 'Low Humidity'
-        ELSE 'Unknown'
+        WHEN b.temperature > 27 THEN 'High Temperature'
+        WHEN b.temperature < 22 THEN 'Low Temperature'
+        WHEN b.humidity > 65 THEN 'High Humidity'
+        WHEN b.humidity < 45 THEN 'Low Humidity'
+        ELSE 'OK'
       END AS breach_reason
     FROM sla_breaches b
     JOIN devices d ON b.device_id = d.id
@@ -133,7 +134,7 @@ router.post('/api/data/bluetooth', (req, res) => {
         res.status(201).json({ success: true });
       });
     }
-  });
+  });// End of getDeviceQuery callback
 });
 // PATCH: Update place name for a reading
 router.patch('/api/data/bluetooth/:id/place', (req, res) => {

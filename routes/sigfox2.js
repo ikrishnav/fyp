@@ -48,7 +48,7 @@ router.get('/api/breaches/sigfox2', (req, res) => {
   });
 });
 
-// --- POST sensor data for Sigfox 2 ---
+// --- POST sensor data for Sigfox 2 with SLA breach logic ---
 router.post('/api/sigfox2', (req, res) => {
   let { device_id, data } = req.body; // device_id and data (e.g. "4E35")
   if (!device_id || !data || data.length !== 4) {
@@ -58,13 +58,16 @@ router.post('/api/sigfox2', (req, res) => {
   // Convert hex to decimal
   const tempHex = data.substring(0, 2);
   const humHex = data.substring(2, 4);
-  const temperature = parseInt(tempHex, 16); // e.g. "4E" => 78
-  const humidity = parseInt(humHex, 16);     // e.g. "35" => 53
+  const temperature = parseInt(tempHex, 16);
+  const humidity = parseInt(humHex, 16);
 
   const timestamp = new Date();
   const created_date = new Date();
 
-  // Find device numeric id
+  // --- Singapore MRT recommended SLA thresholds ---
+  const TEMP_MIN = 23, TEMP_MAX = 27;
+  const HUM_MIN = 45, HUM_MAX = 70;
+
   db.query('SELECT id FROM devices WHERE device_id = ?', [device_id], (err, rows) => {
     if (err || rows.length === 0) {
       return res.status(404).json({ error: "Device not found" });
@@ -82,6 +85,29 @@ router.post('/api/sigfox2', (req, res) => {
           console.error("Insert error:", err);
           return res.status(500).json({ error: "Insert failed" });
         }
+
+        // --- SLA Breach Check and Insert ---
+        let breachStatus = [];
+        if (temperature > TEMP_MAX) breachStatus.push('High Temperature');
+        if (temperature < TEMP_MIN) breachStatus.push('Low Temperature');
+        if (humidity > HUM_MAX) breachStatus.push('High Humidity');
+        if (humidity < HUM_MIN) breachStatus.push('Low Humidity');
+
+        if (breachStatus.length) {
+          const statusText = breachStatus.join(' & ');
+          db.query(
+            `INSERT INTO sla_breaches (device_id, timestamp, temperature, humidity, status)
+             VALUES (?, ?, ?, ?, ?)`,
+            [devId, timestamp, temperature, humidity, statusText],
+            (err2) => {
+              if (err2) {
+                console.error("Insert SLA breach error:", err2);
+              }
+              // Don't block success on breach error
+            }
+          );
+        }
+
         res.json({ success: true, id: result.insertId });
       }
     );
