@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../mqtt/db'); // Assuming this connects to your database
 
+
 // Constants for better maintainability and readability
 const WIFI_DEVICE_TYPE_NAME = 'wifi';
 const TEMP_BREACH_THRESHOLD = 50;
@@ -24,7 +25,9 @@ const sendDbError = (res, err, message) => {
 // ✅ Fetch WiFi sensor data with place name and optional filters
 // Retrieves sensor data entries for 'wifi' type devices.
 // Supports filtering by startDate, endDate, and place_name via query parameters.
-// If no filters are provided, it defaults to fetching the latest 100 entries.
+// If no filters are provided, it defaults to fetching the latest 100 entries
+// ✅ Fetch WiFi sensor data with place name
+
 router.get('/api/data/wifi', (req, res) => {
     const { startDate, endDate, place_name } = req.query; // Get query parameters
 
@@ -77,6 +80,7 @@ router.get('/api/data/wifi', (req, res) => {
 // Retrieves the latest 100 SLA breaches for 'wifi' type devices.
 // Defines breach status based on temperature and humidity thresholds.
 router.get('/api/breaches/wifi', (req, res) => {
+
     const query = `
         SELECT d.device_id, s.timestamp, s.temperature, s.humidity,
                CASE
@@ -100,12 +104,12 @@ router.get('/api/breaches/wifi', (req, res) => {
         TEMP_BREACH_THRESHOLD, HUMIDITY_HIGH_BREACH_THRESHOLD, HUMIDITY_LOW_BREACH_THRESHOLD,
         DEFAULT_DATA_FETCH_LIMIT
     ];
-    db.query(query, params, (err, results) => {
-        if (err) {
-            return sendDbError(res, err, 'Error fetching WiFi SLA breaches');
-        }
-        res.json(results);
-    });
+db.query(query, params, (err, results) => {
+    if (err) {
+        return sendDbError(res, err, 'Error fetching WiFi SLA breaches');
+    }
+    res.json(results);
+});
 });
 
 // ✅ Get Quick Analytics for Wi-Fi Sensor Data
@@ -238,6 +242,24 @@ router.post('/api/data/wifi', (req, res) => {
                 if (err) {
                     return sendDbError(res, err, "Error inserting sensor data");
                 }
+        let breachStatus = [];
+        if (temperature > 28) breachStatus.push("High Temperature");
+        if (temperature < 22) breachStatus.push("Low Temperature");
+        if (humidity > 50) breachStatus.push("High Humidity");
+        if (humidity < 25) breachStatus.push("Low Humidity");
+
+        if (breachStatus.length) {
+          const statusText = breachStatus.join(' & ');
+          const insertBreach = `
+            INSERT INTO sla_breaches (device_id, timestamp, temperature, humidity, status)
+            VALUES (?, FROM_UNIXTIME(?), ?, ?, ?)
+          `;
+          db.query(insertBreach, [deviceDbId, timestamp, temperature, humidity, statusText], (err) => {
+            if (err) {
+              console.error("Error inserting SLA breach:", err);
+            }
+          });
+        }
 
                 let status = null;
                 let breach_type = null;

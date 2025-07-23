@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Sigfox 1 | Filter & Export Data</title>
+  <title>Library Comfort Data | Filter & Export</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/sigfox1.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -199,8 +199,8 @@
 <body>
   <div class="dashboard-header text-center">
     <div class="container">
-      <h1 class="dashboard-title">🔎 Sigfox 1 Data Filter & Export</h1>
-      <div class="dashboard-subtitle">Search, filter, and export your IoT readings by date or location</div>
+      <h1 class="dashboard-title">📚 Library Comfort Data Filter & Export</h1>
+      <div class="dashboard-subtitle">Search, filter, and export environment readings from library facilities</div>
     </div>
   </div>
   <div class="container">
@@ -223,7 +223,7 @@
     <button class="filter-back-btn" id="filter-back-btn" onclick="showFilter()">← Back to Filter</button>
     <div class="filter-card shadow fade-in" id="filter-card">
       <div class="filter-title">Filter & Export Data</div>
-      <div class="filter-sub">Filter Sigfox 1 readings by date or place, then export as CSV.</div>
+      <div class="filter-sub">Filter library comfort readings by date or place, then export as CSV.</div>
       <form class="filter-group" id="filter-form" onsubmit="return false;">
         <div>
           <div class="filter-label">Date</div>
@@ -314,7 +314,7 @@
       document.getElementById('filter-card').style.display = 'none';
       document.getElementById('results-card').style.display = '';
       document.getElementById('filter-back-btn').style.display = 'inline-block';
-      document.getElementById('back-link').style.display = "none";
+      // document.getElementById('back-link').style.display = "none";
     }
 
     function resetFilter() {
@@ -331,7 +331,7 @@
       document.getElementById('filter-card').style.display = '';
       document.getElementById('results-card').style.display = 'none';
       document.getElementById('filter-back-btn').style.display = 'none';
-      document.getElementById('back-link').style.display = "inline-block";
+      // document.getElementById('back-link').style.display = "inline-block";
       renderTable();
     }
 
@@ -385,7 +385,7 @@
       const blob = new Blob([csv], {type: 'text/csv'});
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = 'sigfox1_filtered_data.csv';
+      a.href = url; a.download = 'library_comfort_data.csv';
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(()=>URL.revokeObjectURL(url), 300);
     }

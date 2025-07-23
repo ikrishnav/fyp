@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Set SLA Breach Thresholds</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+      min-height: 100vh;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .threshold-card {
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 4px 32px 0 rgba(84,51,255,0.11), 0 2px 7px 0 rgba(36,198,220,0.11);
+      padding: 36px 36px 28px 36px;
+      min-width: 360px;
+      max-width: 98vw;
+      position: relative;
+      overflow: visible;
+      animation: slideup 0.6s cubic-bezier(.32,1.56,.41,.95);
+    }
+    @keyframes slideup {
+      from { transform: translateY(60px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .threshold-card h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #5433ff;
+      margin-bottom: 20px;
+      letter-spacing: -.01em;
+    }
+    .form-label { font-weight: 600; color: #3f3cbb; }
+    .btn-gradient {
+      background: linear-gradient(90deg,#24c6dc,#5433ff);
+      color: #fff; font-weight: 600; border: none;
+      border-radius: 10px; padding: 11px 36px; font-size: 1.13em;
+      box-shadow: 0 4px 12px 0 rgba(36,198,220,0.08);
+      margin-top: 24px;
+      transition: background .15s, box-shadow .13s;
+    }
+    .btn-gradient:hover {
+      background: linear-gradient(90deg,#5433ff,#24c6dc);
+      color: #f9fafc;
+      box-shadow: 0 6px 24px 0 rgba(84,51,255,0.10);
+    }
+    .back-link {
+      display:inline-flex;align-items:center;gap:8px;font-weight:600;color:#6d28d9;text-decoration:none;margin-bottom:20px;
+    }
+    .back-link:hover { color: #5433ff; }
+    .alert-info {
+      background: linear-gradient(90deg, #fef6fb 0%, #e0e7ff 100%);
+      color: #4f46e5;
+      border-radius: 10px;
+      font-size: 1.04rem;
+      font-weight: 600;
+      margin-bottom: 18px;
+      padding: 12px 14px 12px 18px;
+      border: 1.4px solid #818cf833;
+      box-shadow: 0 1px 4px rgba(20,20,50,0.05);
+    }
+    .breach-table-container {
+      margin: 14px 0 5px 0;
+      max-height: 180px;
+      overflow-y: auto;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(20,20,50,0.04);
+      background: #f3f6fd;
+      border: 1px solid #e0e7ff;
+      animation: fadein 0.7s;
+    }
+    .breach-table {
+      width: 100%;
+      font-size: 1em;
+      margin-bottom: 0;
+      background: transparent;
+    }
+    .breach-table th, .breach-table td {
+      padding: 7px 9px;
+      text-align: left;
+      vertical-align: middle;
+    }
+    .breach-table th {
+      background: #ede9fe;
+      color: #6d28d9;
+      font-weight: 600;
+      font-size: .99em;
+      border-bottom: 1.5px solid #c7d2fe;
+    }
+    .breach-table td {
+      border-bottom: 1px solid #e0e7ff;
+    }
+    .breach-table tr:last-child td { border-bottom: none; }
+    .status-breach {
+      color: #e1495d;
+      font-weight: 600;
+      font-size: .98em;
+    }
+    .status-normal {
+      color: #10b981;
+      font-weight: 600;
+      font-size: .98em;
+    }
+    @keyframes fadein {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .suggest-btn {
+      margin-top: 18px;
+      background: #fff;
+      border: 1.5px solid #a5b4fc;
+      color: #6366f1;
+      border-radius: 9px;
+      padding: 8px 20px 8px 16px;
+      font-size: 1.08em;
+      font-weight: 600;
+      box-shadow: 0 1px 4px rgba(36,198,220,0.07);
+      transition: background .14s, color .12s;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .suggest-btn:hover {
+      background: #6366f1;
+      color: #fff;
+      border-color: #6366f1;
+      box-shadow: 0 3px 16px 0 rgba(84,51,255,0.08);
+      text-decoration: none;
+    }
+    .report-note {
+      color: #60a5fa;
+      font-size: 0.98em;
+      margin-top: 12px;
+      margin-bottom: 4px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .rec-value-box {
+      background: #ede9fe;
+      border: 1px solid #c7d2fe;
+      border-radius: 11px;
+      padding: 9px 15px;
+      margin-bottom: 14px;
+      font-size: 1.06em;
+      color: #6d28d9;
+      font-weight: 500;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+    .rec-label { font-weight: 700; color: #5433ff; }
+  </style>
+</head>
+<body>
+  <div class="threshold-card">
+    <a href="/dashboard/sigfox1" class="back-link">
+      <img src="/arrow.png" alt="Back" style="width:30px;height:30px;border-radius:50%;box-shadow:0 2px 8px #dbeafe;">
+      Back to Dashboard
+    </a>
+    <h2>🔧 SLA Breach Thresholds</h2>
+    <div class="rec-value-box">
+      <span class="rec-label">Recommended:</span>
+      Temp: <span id="rec-temp-range">18°C – 27°C</span>
+      | Humidity: <span id="rec-hum-range">45% – 60%</span>
+      <a href="https://www.google.com/search?q=library+recommended+temperature+humidity"
+        target="_blank" class="suggest-btn" style="margin-left:10px;">
+        <img src="https://img.icons8.com/fluency/24/000000/google-logo.png" style="width:22px;height:22px;">Find Recommendations
+      </a>
+    </div>
+    <div class="alert-info" id="sla-warning" style="display:none;"></div>
+    <div id="breach-table-wrap"></div>
+    <div class="report-note" id="report-note" style="display:none;">
+      <span>💡</span> Please check HVAC systems or report to the facility manager if breaches persist.
+    </div>
+    <form id="sla-threshold-form" autocomplete="off">
+      <div class="mb-2">
+        <label for="breachTempMin" class="form-label">Min Temperature (°C)</label>
+        <input type="number" step="1" min="1" max="99" class="form-control" id="breachTempMin" required>
+      </div>
+      <div class="mb-3">
+        <label for="breachTempMax" class="form-label">Max Temperature (°C)</label>
+        <input type="number" step="1" min="1" max="99" class="form-control" id="breachTempMax" required>
+      </div>
+      <div class="mb-2">
+        <label for="breachHumMin" class="form-label">Min Humidity (%)</label>
+        <input type="number" step="1" min="1" max="100" class="form-control" id="breachHumMin" required>
+      </div>
+      <div class="mb-3">
+        <label for="breachHumMax" class="form-label">Max Humidity (%)</label>
+        <input type="number" step="1" min="1" max="100" class="form-control" id="breachHumMax" required>
+      </div>
+      <button type="submit" class="btn btn-gradient">Save Thresholds</button>
+    </form>
+  </div>
+  <script>
+    // Load thresholds from backend
+    async function loadThresholds() {
+      const res = await fetch('/api/sla/thresholds/sigfox1');
+      const data = await res.json();
+      document.getElementById('breachTempMin').value = data.TEMP_MIN ?? 18;
+      document.getElementById('breachTempMax').value = data.TEMP_MAX ?? 27;
+      document.getElementById('breachHumMin').value = data.HUM_MIN ?? 45;
+      document.getElementById('breachHumMax').value = data.HUM_MAX ?? 60;
+      // Only call showWarning after loading thresholds
+      showWarning();
+    }
+    // Show warning and breaches
+    async function showWarning() {
+      const tmin = Number(document.getElementById('breachTempMin').value);
+      const tmax = Number(document.getElementById('breachTempMax').value);
+      const hmin = Number(document.getElementById('breachHumMin').value);
+      const hmax = Number(document.getElementById('breachHumMax').value);
+      let resp = await fetch('/api/data/sigfox1');
+      let data = await resp.json();
+
+      let breaches = data.filter(entry => {
+        const t = Number(entry.temperature), h = Number(entry.humidity);
+        return (t > tmax || t < tmin || h > hmax || h < hmin);
+      });
+
+      const warning = document.getElementById('sla-warning');
+      const breachTableWrap = document.getElementById('breach-table-wrap');
+      const reportNote = document.getElementById('report-note');
+
+      if (breaches.length) {
+        warning.innerHTML = `⚠️ <b>${breaches.length} reading(s)</b> currently exceed your set threshold.`;
+        warning.style.display = 'block';
+        let tableHTML = `<div class="breach-table-container"><table class="breach-table"><thead>
+          <tr>
+            <th>#</th>
+            <th>Time</th>
+            <th>Temp</th>
+            <th>Humidity</th>
+            <th>Status</th>
+            <th>Place</th>
+          </tr>
+          </thead><tbody>`;
+        breaches.forEach((b, i) => {
+          let t = Number(b.temperature), h = Number(b.humidity);
+          let status = [];
+          if (t > tmax) status.push("High Temp");
+          if (t < tmin) status.push("Low Temp");
+          if (h > hmax) status.push("High Humidity");
+          if (h < hmin) status.push("Low Humidity");
+          let place = b.place_name ? `<span style="color:#3b82f6;font-weight:600">${b.place_name}</span>` : `<span style="color:#cbd5e1">-</span>`;
+          tableHTML += `<tr>
+            <td>${i+1}</td>
+            <td>${new Date(b.timestamp).toLocaleString()}</td>
+            <td>${b.temperature}°C</td>
+            <td>${b.humidity}%</td>
+            <td><span class="status-breach">${status.join(' & ')}</span></td>
+            <td>${place}</td>
+          </tr>`;
+        });
+        tableHTML += "</tbody></table></div>";
+        breachTableWrap.innerHTML = tableHTML;
+        reportNote.style.display = "flex";
+      } else {
+        warning.style.display = 'none';
+        breachTableWrap.innerHTML = '';
+        reportNote.style.display = "none";
+      }
+    }
+    // On load: fetch thresholds from backend and then show breaches
+    loadThresholds();
+
+    document.getElementById('breachTempMin').addEventListener('input', showWarning);
+    document.getElementById('breachTempMax').addEventListener('input', showWarning);
+    document.getElementById('breachHumMin').addEventListener('input', showWarning);
+    document.getElementById('breachHumMax').addEventListener('input', showWarning);
+
+    // Save thresholds to backend
+    document.getElementById('sla-threshold-form').onsubmit = async function(e) {
+      e.preventDefault();
+      const tempMin = document.getElementById('breachTempMin').value;
+      const tempMax = document.getElementById('breachTempMax').value;
+      const humMin = document.getElementById('breachHumMin').value;
+      const humMax = document.getElementById('breachHumMax').value;
+      // PATCH request to update backend
+      await fetch('/api/sla/thresholds/sigfox1', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          TEMP_MIN: Number(tempMin),
+          TEMP_MAX: Number(tempMax),
+          HUM_MIN: Number(humMin),
+          HUM_MAX: Number(humMax)
+        })
+      });
+      alert('Thresholds updated! (Dashboard will use these new values)');
+      window.location.href = "/dashboard/sigfox1";
+    };
+  </script>
+</body>
+</html>

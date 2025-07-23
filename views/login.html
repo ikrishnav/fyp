@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Login - IoT Dashboard</title>
+  <title>Login - Public Facility Comfort Monitoring</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Fonts & Bootstrap -->
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Poppins:wght@800&display=swap" rel="stylesheet">
@@ -32,7 +32,7 @@
       font-weight: 800;
       letter-spacing: .03em;
       color: #e7eaff;
-      margin-bottom: 32px;
+      margin-bottom: 18px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -44,6 +44,34 @@
       font-size: 2.5rem;
       vertical-align: middle;
       filter: drop-shadow(0 2px 4px #0005);
+    }
+    .theme-subtitle {
+      color: #9ce7fd;
+      font-size: 1.08rem;
+      text-align: center;
+      margin-bottom: 8px;
+      margin-top: -10px;
+      font-weight: 500;
+      letter-spacing: .01em;
+      text-shadow: 0 1px 10px #12154855;
+    }
+    .about-btn {
+      margin-bottom: 26px;
+      font-size: 1.01rem;
+      color: #20d7e6;
+      background: rgba(33, 53, 120, 0.14);
+      border: 1.5px solid #24c6dc88;
+      border-radius: 16px;
+      padding: 5px 20px 4px 20px;
+      font-weight: 700;
+      box-shadow: 0 1px 12px #24c6dc18;
+      transition: background .18s, color .16s, border .16s;
+      outline: none;
+    }
+    .about-btn:hover {
+      background: linear-gradient(90deg, #24c6dc44 0%, #5433ff33 100%);
+      color: #fff;
+      border: 1.5px solid #24c6dc;
     }
     .auth-card {
       background: rgba(23,25,40,0.95);
@@ -159,13 +187,45 @@
       color: #b4bfd7;
       opacity: 1;
     }
+    /* About Modal Styles */
+    .modal-backdrop {
+      z-index: 1040 !important;
+    }
+    .modal-content {
+      background: rgba(31,35,52,0.98);
+      border-radius: 16px;
+      border: 1.5px solid #24c6dc77;
+      color: #e8f7ff;
+      box-shadow: 0 2px 40px #24c6dc33;
+      padding: 0 8px;
+    }
+    .modal-header {
+      border-bottom: 1px solid #24c6dc22;
+      background: linear-gradient(90deg, #24c6dc22, #232A47 90%);
+      border-radius: 14px 14px 0 0;
+    }
+    .modal-title {
+      font-family: 'Poppins',sans-serif;
+      font-weight: 700;
+      color: #79edfc;
+    }
+    .modal-body {
+      font-size: 1.06rem;
+      color: #d7f6fa;
+      padding-bottom: 14px;
+    }
   </style>
 </head>
 <body class="login-body">
   <div class="center-page-col">
     <div class="main-logo-title">
-      <span class="icon">🛰️</span>
-      IoT Dashboard Login
+      <span class="icon">🏢</span>
+      Public Facility Comfort Monitoring
+    </div>
+    <button class="about-btn" data-bs-toggle="modal" data-bs-target="#aboutModal">About</button>
+    <div class="theme-subtitle">
+      Real-time temperature & humidity monitoring in Singapore's public spaces.<br>
+      For facility managers and community comfort.
     </div>
     <div class="auth-card">
       <form id="login-form" autocomplete="on" style="width:100%;">
@@ -193,6 +253,35 @@
       </form>
     </div>
   </div>
+
+  <!-- About Modal -->
+<div class="modal fade" id="aboutModal" tabindex="-1" aria-labelledby="aboutModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content shadow-lg">
+        <div class="modal-header">
+          <h5 class="modal-title" id="aboutModalLabel">About Public Facility Comfort Monitoring</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter:invert(1)"></button>
+        </div>
+        <div class="modal-body">
+          <b>What does this platform do?</b><br><br>
+          This system collects and displays <b>live temperature and humidity readings</b> from IoT sensors placed in public facilities across Singapore. The readings are sent by devices at:<br>
+          <ul style="margin-bottom:10px;">
+            <li><b>Main Library</b></li>
+            <li><b>MRT Station Waiting Area</b></li>
+            <li><b>Community Center</b></li>
+            <li><b>Polyclinic Lobby</b></li>
+          </ul>
+          Each sensor regularly sends its readings to this dashboard. You can view the current and historical values for each location, clearly labeled by place name.<br><br>
+          <b>Purpose:</b> Make it easy for facility managers and users to check actual comfort conditions and spot trends over time. The dashboard only displays the data measured by the devices.
+          <br><br>
+          <b>Powered by:</b> IoT sensors using Sigfox, Wi-Fi, and Bluetooth, connected to a secure dashboard.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     // Prevent submit if reCAPTCHA is not complete
     document.getElementById('guest-login-form').addEventListener('submit', function(e) {
