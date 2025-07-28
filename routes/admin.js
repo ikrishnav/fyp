@@ -3,24 +3,18 @@ const router = express.Router();
 const db = require('../mqtt/db');
 const path = require('path');
 
-// Admin Control Panel
 router.get('/dashboard/admin', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/dashboard-admin-panel.html'));
 });
 
-// Sensor Readings Dashboard (HTML)
 router.get('/dashboard/admin/readings', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/dashboard-admin.html'));
 });
 
-// User Management Dashboard (HTML)
 router.get('/dashboard/admin/users', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/dashboard-admin-users.html'));
 });
 
-// ---- APIs ---- //
-
-// /api/data/admin (for readings)
 router.get('/api/data/admin', (req, res) => {
   const query = `
     SELECT 
@@ -38,7 +32,6 @@ router.get('/api/data/admin', (req, res) => {
   });
 });
 
-// /api/breaches/admin (for breaches)
 router.get('/api/breaches/admin', (req, res) => {
   const query = `
     SELECT 
@@ -58,7 +51,6 @@ router.get('/api/breaches/admin', (req, res) => {
   });
 });
 
-// API for user management table
 router.get('/api/users/admin', (req, res) => {
   db.query(`SELECT id, email, role, is_active FROM users WHERE role != 'admin'`, (err, users) => {
     if (err) return res.status(500).json([]);
@@ -66,7 +58,6 @@ router.get('/api/users/admin', (req, res) => {
   });
 });
 
-// Add user (AJAX)
 router.post('/dashboard/admin/users/add', (req, res) => {
   const { email, password, role } = req.body;
   if (!email || !password || !role) return res.status(400).json({ error: 'Missing fields' });
@@ -80,7 +71,6 @@ router.post('/dashboard/admin/users/add', (req, res) => {
   );
 });
 
-// Delete user
 router.post('/dashboard/admin/users/:id/delete', (req, res) => {
   db.query('DELETE FROM users WHERE id = ?', [req.params.id], err => {
     if (err) return res.status(500).json({ error: 'Could not delete user.' });
@@ -88,7 +78,6 @@ router.post('/dashboard/admin/users/:id/delete', (req, res) => {
   });
 });
 
-// Toggle active/inactive
 router.post('/dashboard/admin/users/:id/toggle', (req, res) => {
   db.query('UPDATE users SET is_active = NOT is_active WHERE id = ?', [req.params.id], err => {
     if (err) return res.status(500).json({ error: 'Could not toggle user.' });
@@ -96,7 +85,6 @@ router.post('/dashboard/admin/users/:id/toggle', (req, res) => {
   });
 });
 
-// Remove a reading by ID
 router.post('/dashboard/admin/readings/:id/delete', (req, res) => {
   const id = req.params.id;
   db.query('DELETE FROM sensor_data WHERE id = ?', [id], err => {
@@ -105,7 +93,6 @@ router.post('/dashboard/admin/readings/:id/delete', (req, res) => {
   });
 });
 
-// Edit/update a reading by ID (AJAX PATCH)
 router.patch('/dashboard/admin/readings/:id', (req, res) => {
   const id = req.params.id;
   const { temperature, humidity, place_name } = req.body;
